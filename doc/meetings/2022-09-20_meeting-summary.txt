@@ -1,0 +1,28 @@
+Hi Akio and Jon,
+
+It was great meeting you both today! 
+Below we have included a list of the items discussed today for the dashboard. 
+Let us know if you have any questions or comments!
+
+Change Language
+
+"Select Base Municipality" instead of "Select Municipality"
+"Select Comparison Municipalities" instead of "Peer Municipalities"
+"Select all comparison municipalities" instead of "select all peer group members"
+"Select Service Metric" instead of "numerator choice"
+"Select Denominator/Context Variable" instead of "denominator choice" 
+"Average of Comparison Municipalities" instead of "Add Average"
+"Value" instead of "quotient" (in graph)
+"Legend" instead of "catgry" (in graph)
+"Average" or municipality name instead of "peer group" (in graph, under "catgry")
+
+Default Options
+Average option is unselected
+Show individual line trends for comparison municipalities in different color
+First option for numerator and denominator should appear blank so people can use it as a search bar
+Show all municipality options even when "select all peer group members" is selected
+Add mouse over option for definition and example of math terminology for "numerator choice" and "denominator choice"
+Add option to multiple the indicator by 100, 1000, 100k, and 1 million
+Control panel (selected options) should appear when graph is downloaded (preferably in PDF format)
+
+Sincerely,

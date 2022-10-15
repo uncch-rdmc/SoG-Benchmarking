@@ -72,7 +72,7 @@ ui <- fluidPage(
 sidebarPanel(
 # select a base city
 selectInput(inputId='selectedCity', 
-              labe='Select Base Municipality', 
+              label='Select Base Municipality', 
               choices=c("Type a municipality name", citylabel), 
               selectize = TRUE),
 
@@ -255,7 +255,7 @@ server <- function(input, output) {
   })
   
   output$selectedQuotient <- renderText({
-    paste(c(input$selectedVar4num, "/", input$selectedVar4denom))
+    paste(c("Metric=", input$selectedVar4num, "/", input$selectedVar4denom), collapse = "")
   })
   output$selectMultiplier <- renderText({ 
     paste(c("Multiplier=", input$selectMultiplier)) })
@@ -391,9 +391,7 @@ data4EachPeerCity_rawt <- data4EachPeerCity_rawt %>% gather(input$selectedYears,
 print("data4EachPeerCity_rawt=")
 print(data4EachPeerCity_rawt)
 
-data4EachPeerCity_raw_t <- as_tibble(data_pg_nm / data_pg_dm)
-print("data4EachPeerCity_raw_t=")
-print(data4EachPeerCity_raw_t)
+
 
 data4EachPeerCity <- as_tibble(data_pg_nm / data_pg_dm) %>% 
   gather(input$selectedYears, key="Year", value = "quotient")
@@ -467,7 +465,9 @@ if (input$selectAvg){
   
   if (input$selectCI) {
     # add CI-bands
-    plt1 <- plt1 + geom_errorbar(data = data4plot_pgx, aes(ymin = quotient - ci, ymax = quotient + ci), width = .1, color = "#696969", position = position_dodge(0.1)) 
+    plt1 <- plt1 + geom_errorbar(data = data4plot_pgx,
+      aes(ymin = quotient - ci, ymax = quotient + ci), 
+      width = .1, color = "#696969", position = position_dodge(0.1)) 
   }
   
 } else {
@@ -476,13 +476,31 @@ if (input$selectAvg){
   
   plt1 <- plt1 + 
     geom_line(data = data4EachPeerCity_rawt, 
-              aes(x = Year, y = quotient, group = catgry, color = catgry))
-  
+              aes(x = Year, y = quotient, group = catgry, color = catgry)) +
+    scale_color_discrete(name = "Legend")
 
 }
+# furnish the graph with its title, etc.
+
+print("numerator=")
+print(input$selectedVar4num)
+print("denominator=")
+print(input$selectedVar4denom)
+
+subtitleText <-paste(c("Base Municipality: ",input$selectedCity,
+                      ";\nService: ", input$selectedService,"; \nMetric: " , input$selectedVar4num, "/", 
+                       input$selectedVar4denom), collapse = "")
+print("subtitleText=")
+print(subtitleText)
+
+plt1 <- plt1 +
+  labs(title = "Title: UNC SoG Benchmark 2.0 Dashboard",
+       subtitle =subtitleText, 
+       caption = "caption field: data-sources come here")
+
 
 ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf")
-plt1
+ggplotly(plt1)
 }) # end of tab 1's plot
   
 output$plotOnTab2 <- renderPlotly({

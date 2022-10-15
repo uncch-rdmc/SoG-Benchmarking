@@ -1,0 +1,10 @@
+
+:toc: macro
+:toclevels: 3
+:icons: font 
+
+= UNC SoG Benchmarking 2.0 Dashboard project
+
+toc::[]
+
+The source-tree of the Dashboard is stored under the `Benchmarking2` directory.
