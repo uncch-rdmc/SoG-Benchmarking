@@ -1,0 +1,25 @@
+
+
+:toc: macro
+:toclevels: 3
+:icons: font 
+:imagesdir: image
+= How to build and deploy Benchmarking 2.0 project 
+
+toc::[]
+Last updated: 2022-10-19 W
+
+
+== How to build the Project with RStudio
+
+. Get a 
+. Clone the https://github.com/OdumInstitute/SoG-Benchmarking[GitHub repository] in a local directory from your command prompt or terminal as follows
++
+----
+git clone https://github.com/OdumInstitute/SoG-Benchmarking.git
+----
+NOTE: If you are not using `git`, you may download the project as a zip file from the GitHUb repository by clicking the following URL: https://github.com/OdumInstitute/SoG-Benchmarking/archive/refs/heads/main.zip
++
+. Open your RStudio
+
+image::rstudio_before-open-project_2022-10-19.png[Open Project in New Session ...]

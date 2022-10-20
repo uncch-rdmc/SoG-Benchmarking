@@ -63,3 +63,6 @@ vignettes/*.pdf
 # Ignore code-workspaces
 *.code-workspace
 
+# project specific
+Benchmarking2/graph.pdf
+Benchmarking2/rsconnect/
