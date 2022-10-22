@@ -4,22 +4,168 @@
 :toclevels: 3
 :icons: font 
 :imagesdir: image
-= How to build and deploy Benchmarking 2.0 project 
+= How to build and deploy Benchmarking 2.0 Dashboard project 
 
 toc::[]
-Last updated: 2022-10-19 W
+Last updated: 2022-10-20 Th
 
 
 == How to build the Project with RStudio
 
-. Get a 
-. Clone the https://github.com/OdumInstitute/SoG-Benchmarking[GitHub repository] in a local directory from your command prompt or terminal as follows
+=== Step 1: Get a copy of Benchmarking-2-Dashboard project's repository 
+
+**Alternative 1** (via terminal/command prompt: `git` must be installed on your computer)
+
+. Clone the GitHub repository, `https://github.com/OdumInstitute/SoG-Benchmarking`, in a local directory from your computer's command prompt or terminal as follows
 +
 ----
 git clone https://github.com/OdumInstitute/SoG-Benchmarking.git
 ----
-NOTE: If you are not using `git`, you may download the project as a zip file from the GitHUb repository by clicking the following URL: https://github.com/OdumInstitute/SoG-Benchmarking/archive/refs/heads/main.zip
-+
-. Open your RStudio
 
+**Alternative 2** (via GitHub's GiHub Desktop: Windows/Mac OS only: you must have permission to access the Dashboard project's repository):
+
+. Download/Install `GitHub Desktop` from `https://desktop.github.com/` on your computer
++
+. Visit the GitHub repository `https://github.com/OdumInstitute/SoG-Benchmarking` with your browser and click the `Code` button, then Click the link `Open with GitHub Desktop` as follows:
++
+image::GithubDesktop-download-2_2022-10-20.png[]
++
+. Click the `Open GitHubDesktop.exe` button on the popup window
++
+image::github-desktop-permission_2022-10-20.png[]
++
+. Click the `Clone` button to create a copy of the Dashboard repository on your computer when GitHub Desktop's popup window, `Clone a repository`, appears
++
+image::GitHubDesktop-before-clone_22022-10-20.png[]
+
+
+
+**Alternative 3** (without `git`)
+
+. Download the repository as a zip file from the following URL: https://github.com/OdumInstitute/SoG-Benchmarking/archive/refs/heads/main.zip or by clicking the download link as shown below:
++
+image::download-project-as-zip-file_2022-10-20-modified-2.png[download the repository as a zip file]
+. Unzip the downloaded zip file
+
+=== Step 2: Check the project structure and locate the `Benchmarking2.Rproj` file
+
+. With `File Explore` (Windows) or an equivalent tool, locate the root directory of the dashboard project `SoG-Benchmarking/Benchmarking2` where `Benchmarking2.Rproj` exists in your local file system as follows:
++
+image::project-structure_2022-10-20.png[Project Structure]
+NOTE: A `_project_name_.Rproj` file automatically configures RStudio for `_project_name_` project
+
+
+=== Step 3: Open the Dashboard project with RStudio
+
+. Start your RStudio
+. Click the menu `Fie` => `Open Project in New Session`
++
 image::rstudio_before-open-project_2022-10-19.png[Open Project in New Session ...]
++
+. Move to the directory where `Benchmarking2.Rproj` file exists, select the `Benchmarking2.Rproj`, and click the `Open` button
++
+image::open-r-project-file_2022-10-20.png[Project File]
++
+. Confirm the correct project was loaded by checking the header of the `Console` window and the Header of RStudio
++
+image::after-project-is-opened_2022-10-21-2.png[After the project is loaded]
++
+. Open `app.R`, which resides in the root directory of the project `Benchmarkin2` by clicking `File` => `Open File ...` from the menu bar
++
+image::before-open-appR_2022-10-21-1.png[open app.R]
++
+. **First-time-only step:** Install required R-packages
+As explained in the follwoing document, https://rstudio.github.io/renv/articles/collaborating.html[Collaborating with renv]
+
+.. Enter the the following command in the `Console` window and then type `y` and hit the return key to install not-yet installed R packages
++
+----
+> renv:: restore()
+...
+
+Do you want to proceed? [y/N]: y
+
+----
++
+.. If RStudio returns the message 
++
+----
+This project has not yet been activated.
+...
+Would you like to activate this project before restore? [Y/n]:
+----
++
+type `Y` and hit the return key.
+
+== How to locally run the Project 
+
+. Click the `Run App` button of the Source window to build/locally run the project
++
+image::after-appR-file-is-opened_2022-10-21-1.png[Run App]
+
+
+== How to publish(deploy) the Dashboard Project to the `shinyapps.io` production server from your RStudio
+
+=== First-time-only: how to set up the connection to the `shinyapps.io` server 
+
+
+The publish button is located at the top-right corner of the source windows.
+
+. Click the publish options icon
++
+image::publish-button_2022-10-21.png[Publish options]
++
+. Select the `Publish Application` link
++
+image::publish-button-options_2022-10-21.png[]
++
+. When the `Connect Publishing Account` windows appears, click the `Next` button
++
+image::connect-publishing-account_2022-10-21.png[]
++
+. When the `Connect Account` windows appears, click the `ShinyApps.io`
++
+image::connect-account_2022-10-21.png[]
++
+. When the `Connect ShinyApps.io Account` windows appears, copy and paste the token/secret string, `rsconnect::setAccountInfo(name='zzzz', token='XXXXXXXXXXXXXXXXXXX', secret='YYYYYYYYYY')`, into the box and click `Connect Account` button
++
+image::connect-shinyappsio-account_2022-10-21.png[]
++
+. When the `Publish to Server` windows appears, click the `Cancel` button
+
+WARNING: Do not publish the Dashboard at this step
++
+image::publish-to-server_2022-10-21.png[]
+
+=== How to publish the Dashboard Project from the preview window
+
+. After having built the Dashboard project locally, click the `Publish` icon at the top-right corner of the preview window
++
+image::publish-application-icon_2022-10-21.png[]
+. When the `Publish to Server` window appears, check files to be uploaded and type an instance name in the box of `Title` as follows:
++
+image::publish-to-sever-from-preview-window_2022-10-21.png[]
+WARNING: Do not use the name `Benchmarking2` for your testing purposes; the name `Benchmarking2` is reserved for the production instance
++
+. The focus of your computer moved to your default browser and shows the dashboard running on the `shinyApps.io` server as follows:
++
+image::after-publishing-browser-tab_2022-10-21.png[]
++
+. Note: After the above publishing, the preview window's `Publish` label has been relabeled to `Republish`
++
+image::after-publish-republish-label_2022-10-21.png[]
+
+
+
+// == A list of unused images
+// image::download-project-as-zip-file_2022-10-20.png[]
+
+// image::open-r-project-file_2022-10-20.png[]
+
+// image::project-structure_2022-10-20.png[]
+
+
+
+// image::repository-clone-permission_2022-10-20.png[]
+
+// image::project-structure_2022-10-20.png[]
