@@ -132,10 +132,10 @@ image::connect-account_2022-10-21.png[]
 image::connect-shinyappsio-account_2022-10-21.png[]
 +
 . When the `Publish to Server` windows appears, click the `Cancel` button
-
-WARNING: Do not publish the Dashboard at this step
 +
 image::publish-to-server_2022-10-21.png[]
++
+WARNING: Do not publish the Dashboard project at this step
 
 === How to publish the Dashboard Project from the preview window
 
