@@ -1,0 +1,16 @@
+:toc: macro
+:toclevels: 3
+:icons: font
+
+
+= To-od Items for the meeting of 2022-10-26
+
+toc::[]
+
+== Leftover items 
+
+* 2022-09-20
+
+[ ] Add mouse over option for definition and example of math terminology for "numerator choice" and "denominator choice"
+
+* 2022-10-05 

@@ -156,16 +156,3 @@ image::after-publishing-browser-tab_2022-10-21.png[]
 image::after-publish-republish-label_2022-10-21.png[]
 
 
-
-// == A list of unused images
-// image::download-project-as-zip-file_2022-10-20.png[]
-
-// image::open-r-project-file_2022-10-20.png[]
-
-// image::project-structure_2022-10-20.png[]
-
-
-
-// image::repository-clone-permission_2022-10-20.png[]
-
-// image::project-structure_2022-10-20.png[]

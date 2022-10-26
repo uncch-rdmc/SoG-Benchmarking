@@ -3,7 +3,7 @@
 :toclevels: 3
 :icons: font
 
-= Demo project for the meeting of 2022-10-05
+= = To-Do List for the meeting of 2022-10-05 based on the demo/meeting of 2022-09-20
 
 == Email from Elisabeth of 2022-09-20
 
