@@ -9,7 +9,7 @@ source("helpers.R")
 ################################################################################
 ui <- fluidPage(
 #  shinythemes::themeSelector(),
-  titlePanel("Benchmarking 2.0 Project"),
+  titlePanel("Benchmarking 2.0"),
 
   
   sidebarLayout(
@@ -24,7 +24,7 @@ ui <- fluidPage(
                  
     
 
-                 h3("UNC SoG Benchmark 2.0 Dashboard"),
+                # h3("UNC SoG Benchmark 2.0 Dashboard"),
                  
                  textOutput("selectedQuotient", container = h4),
                  br(),
@@ -40,18 +40,7 @@ ui <- fluidPage(
                  textOutput("selectAvg", container = p),  
                  textOutput("selectCI", container = p)
                  ),
-        tabPanel("Instruction",
-                 # across cities comparison for variable, for year
-                 h3("How to use this dashboard"),
-                 p("Guide Texts come here"),
-                 plotlyOutput(outputId = "plotOnTab2")
-                 ),
-        tabPanel("Tab 3", 
-                 h3("Tab 3 title here"),
-                 DT::dataTableOutput("bd_data_x")
-                 
-                 
-                 ),
+
         tabPanel("About",
           tags$h3(
             "Benchmarking 2.0: Project Overview"),
@@ -74,7 +63,7 @@ sidebarPanel(
 # select a base city
 selectInput(inputId='selectedCity', 
               label='Select Base Municipality', 
-              choices=c("Type a municipality name", citylabel), 
+              choices=c(citylabel), 
               selectize = TRUE),
 
 # select-all-municipalities checkbox
@@ -115,8 +104,8 @@ selectInput(inputId='selectedVar4denom',
 
 radioButtons(inputId = "selectMultiplier", 
               label = "Select a multiplier", 
-              choices = list("None"=0, "x 10"=1, "x 100"=2, "x 1K"=3, 
-                "x 10K"=4, "x 100K"=5, "x 1M"=6),
+              choices = list("None"=0, "x 100"=2, 
+               "x 100K"=5, "x 1M"=6),
               selected=0),
 
 
@@ -235,38 +224,38 @@ server <- function(input, output) {
     paste(c("selected Municpality=", input$selectedCity))
   })
   output$peerGroup <- renderText({
-    paste(c("selected peerGroup=", input$peerGroup))
+    paste(c("selected Comparison Municipalities=", input$peerGroup))
   })
   
   
   output$selectedService <- renderText({
-    paste(c("selected Service=", input$selectedService))
+    paste(c("selected Service =", input$selectedService))
   })
   
   output$selectedYears <- renderText({
-    paste(c("selected Years=", input$selectedYears))
+    paste(c("selected Years =", input$selectedYears))
   })
   
   output$selectedVar4num <- renderText({
-    paste(c("selected variable=", input$selectedVar4num))
+    paste(c("selected Service Metric =", input$selectedVar4num))
   })
   
   output$selectedVar4denom <- renderText({
-    paste(c("seclected denominator variable=",input$selectedVar4denom))
+    paste(c("seclected Denominator Variable =",input$selectedVar4denom))
   })
   
   output$selectedQuotient <- renderText({
-    paste(c("Metric=", input$selectedVar4num, "/", input$selectedVar4denom), collapse = "")
+    paste(c("", input$selectedVar4num, "/", input$selectedVar4denom), collapse = "")
   })
   output$selectMultiplier <- renderText({ 
     paste(c("Multiplier=", input$selectMultiplier)) })
   
   output$selectAvg <- renderText({
-    paste(c("Average seclected ?=",input$selectAvg))
+    paste(c("Average seclected =",input$selectAvg))
   })  
   
   output$selectCI <- renderText({
-    paste(c("CI seclected ?=",input$selectCI))
+    paste(c("CI seclected =",input$selectCI))
   })
   
   output$scatterplot <- renderPlotly({
@@ -487,21 +476,32 @@ print("numerator=")
 print(input$selectedVar4num)
 print("denominator=")
 print(input$selectedVar4denom)
+titleText <- paste(c("" , 
+                     input$selectedVar4num, " ", 
+                     input$selectedVar4denom), collapse = "")
+
+peerGroupList <- paste(input$peerGroup,collapse=",")
 
 subtitleText <-paste(c("Base Municipality: ",input$selectedCity,
-                      ";\nService: ", input$selectedService,"; \nMetric: " , input$selectedVar4num, "/", 
-                       input$selectedVar4denom), collapse = "")
+                      "\nService: ", input$selectedService,
+                      "\nComparison Municipalities: ", peerGroupList
+                      ), 
+                      collapse = "")
 print("subtitleText=")
 print(subtitleText)
 
 plt1 <- plt1 +
-  labs(title = "Title: UNC SoG Benchmark 2.0 Dashboard",
-       subtitle =subtitleText, 
-       caption = "caption field: data-sources come here")
+  theme(plot.caption = element_text(hjust = 0)) +
+  theme(axis.title.y = element_blank()  )
+  labs(title = titleText,
+       caption = subtitleText)
 
 
-ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf")
-ggplotly(plt1)
+ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", width = 8.5, 
+       height = 10, units = "in")
+
+#plot_ly() %>% config(displayModeBar = FALSE)
+ggplotly(plt1) %>% config(displayModeBar = FALSE)
 }) # end of tab 1's plot
   
 output$plotOnTab2 <- renderPlotly({

@@ -13,4 +13,26 @@ toc::[]
 
 [ ] Add mouse over option for definition and example of math terminology for "numerator choice" and "denominator choice"
 
-* 2022-10-05 
+* 2022-10-19
+1. [ ]As for what needs to be changed on the PDF, we would like:
+
+* [ ] The Base Municipality selection should be displayed below the graph.
+* [ ] The service should also be displayed below the graph.
+* [ ] The comparison municipalities should be displayed when the average is on the graph.
+* [ ] The title should be changed to just display the numerator and denominator (and if it is too long, we can have the numerator on one line and the denominator on the other)
+
+2. [ ] We would also like to integrate an option to display only the raw data, perhaps via a checkbox, which when selected would make the dropdown for the denominator options disappear.
+// This implies that rendering would be a two-step process 
+
+3. [ ] Lastly, we also discussed integrating the dashboard onto the website, and we will wait for your coworker's input on the licensing for that.
+ 
+
+Thank you so much for all your work on the project!
+
+
+* Additional feature requests
+** [ ] The control panel (selector) can be hidden 
+** [ ] font/color modifications
+
+* Bug?
+** [ ] A previous selection was not flushed under a certain condition (initial selection was not updated?, numerator and/or denominator?)

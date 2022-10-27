@@ -9,7 +9,8 @@ library(DT)
 library(scales)
 library(rjson)
 library(Rmisc)
-bd_data<-read_rds(file="./Benchmarking_2_0_Data_Long_Form.rds")
+#bd_data<-read_rds(file="./Benchmarking_2_0_Data_Long_Form.rds")
+bd_data <-read_rds(file="df_combined_uc.rds")
 m_tbl  <- bd_data %>% distinct(Municipality)
 m_list <- bd_data %>% distinct(Municipality) %>% pull() 
 s_list <- bd_data %>% distinct(Service) %>% filter(Service !="Census") %>% pull()
@@ -33,3 +34,7 @@ for (srv in s_all_list) {
 
 
 censusVars <- bd_data  %>% filter(Service=="Census") %>% distinct(Variable) %>% pull()
+# label data files
+all_service_abbrev_to_full.rds<-read_rds(file = "all_service_abbrev_to_full.rds")
+
+all_varNameToLabel.rds<-read_rds(file = "all_varNameToLabel.rds")
