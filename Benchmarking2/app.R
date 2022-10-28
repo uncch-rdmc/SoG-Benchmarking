@@ -287,9 +287,15 @@ server <- function(input, output) {
 # when the checkbox of denominator|context var is turned off,
 # chart returns to normal   
   observe({
-    if (!input$selectedUseDenominator){
+    if (input$selectedUseDenominator){
       # when the checkbox is unchecked 
       # updateSelectInput(inputId = "selectedVar4denom", choices=c())
+      
+      updateRadioButtons(inputId = "selectMultiplier", selected = 2)
+      
+      
+    } else {
+      updateRadioButtons(inputId = "selectMultiplier", selected = 0)
     }
     
     
@@ -383,6 +389,8 @@ if (input$selectedUseDenominator){
   ## base municipality: numerator 
   print("denominator=")
   print(input$selectedVar4denom)
+  
+  # update the multiplier value to 
   
 } else {
   print("Does not use a denominator")
@@ -686,14 +694,20 @@ print(metricVarLabel)
 # print(varset4denominator)
 print("denominator=")
 print(input$selectedVar4denom)
-print("name check: denominator=")
-contextVarLabel <-
-  names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4denom)]
+print("name check: denominator: input$selectedVar4denom=")
+print("current input$selectedService is=")
+print(input$selectedService)
+contextVarLabel <-v2lallinOne[[input$selectedVar4denom]]
+  # names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4denom)]
+
+print("contextVarLabel=")
 print(contextVarLabel)
 
 if (useDenominator){
-  contextVarLabel <- past("/Denominator|Context Variable: ",contextVarLabel)
+  print("use denominator case: variable-name")
+  contextVarLabel <- paste("/Denominator|Context Variable: ",contextVarLabel)
 } else{
+  print("no denominator: blank")
   contextVarLabel<-""
 }
 
