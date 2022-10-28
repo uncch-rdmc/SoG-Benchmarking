@@ -14,17 +14,17 @@ toc::[]
 ** [ ] An option to display only the raw data, perhaps via a checkbox, which when selected would make the dropdown for the denominator options disappear.
 ** [x] Remove the word “Project” in the title
 ** [x] Remove the “Instructions” tab
-** [ ] It should come with a preloaded graph instead of a blank space
+** [x] It should come with a preloaded graph instead of a blank space
 ** [x] Change “peerGroup” to “Comparison Municipalities”
 ** [x] Change “variable” to “Service Metric”
-** [ ] Capitalize “denominator variable” to “Denominator Variable”
+** [x] Capitalize “denominator variable” to “Denominator Variable”
 ** Pre-populate
-*** [ ] the service metric
+*** [x] the service metric
 *** context variable
 ** Add full names for:
-*** [ ] Services
-*** [ ] Service metrics
-*** [ ] Denominator variables
+*** [x] Services
+*** [x] Service metrics
+*** [x] Denominator variables
 ** [x] Replace the title with the service metric/denominator variable
 ** [x] Hide the confusing options for the graph
  

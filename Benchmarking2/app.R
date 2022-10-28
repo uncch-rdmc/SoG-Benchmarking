@@ -153,7 +153,13 @@ conditionalPanel(
     )
 ),
 # Graph-Downloading button 
-downloadButton('downloadGraph')
+downloadButton('downloadGraph'),
+
+radioButtons(inputId = "selectPageLayout", 
+             label = "Select Page Layout", 
+             choices = list("Portrait"=0, "Landscape"=1),
+             selected=1)
+
 
 )
 
@@ -719,6 +725,24 @@ subtitleText <-paste(c("Base Municipality: ",input$selectedCity,
                       collapse = "")
 print("subtitleText=")
 print(subtitleText)
+
+
+# default page layout
+paperWidth<-10
+paerHeight<-8.5
+
+
+if (input$selectPageLayout == 0){
+  # portrait case
+  print("portrait request")
+  paperWidth<-8.5
+  paerHeight<-10
+}
+print("paperWidth=")
+print(paperWidth)
+print("paerHeight=")
+print(paerHeight)
+
 # furnish the graph with its title, etc.
 plt1 <- plt1 +
   ggtitle(titleText)+
@@ -733,8 +757,8 @@ plt1 <- plt1 +
   #      caption = subtitleText)
 
 
-ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", width = 10, 
-       height = 8.5, units = "in")
+ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", width = paperWidth, 
+       height = paerHeight, units = "in")
 print("= END =================================================================")
 # hide plotly's modebar
 ggplotly(plt1) %>% config(displayModeBar = FALSE)
