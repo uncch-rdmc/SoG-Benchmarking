@@ -9,6 +9,18 @@ source("helpers.R")
 ################################################################################
 ui <- fluidPage(
 #  shinythemes::themeSelector(),
+  
+  tags$head(
+    tags$style(HTML("
+    .shiny-output-error-validation {
+    color: red;
+    font-size: 16px
+    }
+    "))
+  ),
+  
+  
+  
   titlePanel("Benchmarking 2.0"),
 
   
@@ -95,8 +107,9 @@ checkboxGroupInput(inputId="selectedYears",
 
 selectInput(inputId='selectedVar4num', 
             label = 'Select Service Metric', 
-            choices = initialNumeratorValue,
-            selected = initialNumeratorValue),
+            choices = c(srv2varlbllst[["amr"]]),
+            selected = initialNumeratorValue
+            ),
 
 # checkbox to hide/show the denominator variable
 checkboxInput(inputId='selectedUseDenominator', 
@@ -109,8 +122,7 @@ conditionalPanel(
 # select a denominator variable: pulldwon menu
 selectInput(inputId='selectedVar4denom', 
             label = 'Select Denominator/Context Variable', 
-            choices = c(),
-            selected = c()
+            choices = c()
             )
 ),
 
@@ -228,10 +240,10 @@ server <- function(input, output) {
     print(varset4numerator)
     updateSelectInput(inputId = "selectedVar4num",
                       choices=c(varset4numerator),
-                      selected = varset4numerator[[1]])
-    
-    print("within observe: input$selectedVar4num2=")
-    print(input$selectedVar4num)
+                      selected = c(input$selectedVar4num))
+    # 
+    # print("within observe: input$selectedVar4num2=")
+    # print(input$selectedVar4num)
   })
   # updating the set of denominator variables
   observe({
@@ -377,6 +389,23 @@ if (input$selectedUseDenominator){
 print("selectedYears=")
 print(input$selectedYears)
 
+valueAvailableCities <- bd_data %>% 
+  filter(Service == input$selectedService)   %>%
+  filter(Variable==input$selectedVar4num)    %>%
+  filter(!is.na(Value)) %>%
+  distinct(Municipality) %>%
+  pull()
+print("valueAvailableCities=")
+print(valueAvailableCities)
+print("selected city=")
+print(input$selectedCity)
+validate(
+  need(!is.na(match(input$selectedCity, valueAvailableCities)),
+       "\n\nSelected City did not report data\nChoose a different municipality.")
+)
+  
+
+
 
 data_sc_nm <- bd_data %>% 
   filter(Service == input$selectedService)   %>%
@@ -420,13 +449,27 @@ print(data_sc_dm)
 # warning: since the same variable name is used in more than one services
 # the service filter must be applied first
 # base-line data for the numerator
+
+tmp_pg_nm <- bd_data %>% 
+  filter(Service == input$selectedService)   %>%
+  filter(Variable==input$selectedVar4num)   %>%
+  filter(Municipality %in% input$peerGroup) %>% 
+  arrange(Municipality, Year)
+print("tmp_pg_nm=")
+print(tmp_pg_nm)
+
+
 data_pg_nm <- bd_data %>% 
   filter(Service == input$selectedService)   %>%
   filter(Variable==input$selectedVar4num)   %>%
   filter(Municipality %in% input$peerGroup) %>% 
+  arrange(Municipality, Year) %>%
   spread(key=Year, value=Value)       %>%
   select(input$selectedYears) %>% 
   as.matrix()
+
+print("data_pg_nm(s)=")
+print(data_pg_nm)
 
 data_pg_nm <- 10^as.integer(input$selectMultiplier) * data_pg_nm
 print("data_pg_nm(b)=")
@@ -443,6 +486,7 @@ updatedPeerGroup <- bd_data %>%
   filter(Service == input$selectedService)   %>%
   filter(Variable== input$selectedVar4num)   %>% 
   filter(Municipality %in%  input$peerGroup) %>% 
+  arrange(Municipality) %>%
   distinct(Municipality) %>% pull(Municipality)
 print("updatedPeerGroup=")
 print(updatedPeerGroup)
@@ -459,12 +503,13 @@ print(data_pg_nm)
 data_pg_dm <- bd_data %>% 
   filter(Service == input$selectedService | Service =="Census")   %>%
   filter(Variable==input$selectedVar4denom) %>%
-  filter(Municipality %in% input$peerGroup) %>% 
+  filter(Municipality %in% updatedPeerGroup) %>% 
+#  filter(Municipality %in% input$peerGroup) %>% 
   spread(key=Year, value=Value)       %>%
   select(input$selectedYears) %>% 
   as.matrix()
-
-rownames(data_pg_dm) <- input$peerGroup
+#rownames(data_pg_dm) <- input$peerGroup
+rownames(data_pg_dm) <- updatedPeerGroup
 print("data_pg_dm=")
 print(data_pg_dm)
 
