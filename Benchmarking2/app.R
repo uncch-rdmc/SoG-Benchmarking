@@ -108,7 +108,8 @@ checkboxGroupInput(inputId="selectedYears",
 selectInput(inputId='selectedVar4num', 
             label = 'Select Service Metric', 
             choices = c(srv2varlbllst[["amr"]]),
-            selected = initialNumeratorValue
+            #selected = initialNumeratorValue
+            selected = c()
             ),
 
 # checkbox to hide/show the denominator variable
@@ -175,7 +176,10 @@ radioButtons(inputId = "selectPageLayout",
 ################################################################################
 
 server <- function(input, output) {
-
+#------------------------------------------------------------------------------
+# observe blocks 
+#------------------------------------------------------------------------------
+# selecting the peer group
   
   observe({
     if (input$selectAllpeer){
@@ -209,31 +213,40 @@ server <- function(input, output) {
   
   
   observe({ 
-    
+    print("observe:updateCheckbox(Input/selectAllpeer")
     
     if (identical(input$peerGroup, citylabel[!citylabel %in% c(input$selectedCity)])){
-      print("select all state")
+      print("select all cities")
       print(input$peerGroup)
       updateCheckboxInput(inputId = "selectAllpeer", value = TRUE)
     } else {
-      print("not select all state")
+      print("not select all cities")
       print(input$peerGroup)
     }
   })
-  
-  
+#------------------------------------------------------------------------------
+# other input fields
+#------------------------------------------------------------------------------
   # observe({
   #   
   #   updateSelectInput(inputId ="" , choices = )
   # })
+
+# selection of a service
+# affects the set of service metrics and its selected one
+
   
   
-# updating the set of numerator variables
+# updating the set of numerators (service metrics)
+# 
+# trigger: whenever the current service has been updated, i.e.,
+# when a user made a new choice, the set of service metrics must be updated
+#
+# side-effects: a change to this UI component is self-contained
+# this change in service must be propagated to 
+# related UI parts: the current set of 
   
-  observe({
-    # old
-    #varset4numerator <- service2var[input$selectedService]
-    # new
+  observeEvent(input$selectedService, {
     print("within observe(numerator): current input$selectedService=")
     print(input$selectedService)
     
@@ -245,12 +258,39 @@ server <- function(input, output) {
     print("within observe block: varset4numerator=")
     print(varset4numerator)
     updateSelectInput(inputId = "selectedVar4num",
-                      choices=c(varset4numerator),
-                      selected = c(input$selectedVar4num))
-    # 
-    # print("within observe: input$selectedVar4num2=")
-    # print(input$selectedVar4num)
+                      choices=c(varset4numerator))
   })
+  
+  
+  
+  
+  
+
+  # observe({
+  # 
+  #   print("within observe(numerator): current input$selectedService=")
+  #   print(input$selectedService)
+  # 
+  #   print("within observe: input$selectedVar4num1=")
+  #   print(input$selectedVar4num)
+  # 
+  #   varset4numerator <- srv2varlbllst[[input$selectedService]]
+  # 
+  #   print("within observe block: varset4numerator=")
+  #   print(varset4numerator)
+  #   updateSelectInput(inputId = "selectedVar4num",
+  #                     choices=c(varset4numerator))
+  # })
+
+  # observeEvent(input$selectedVar4num
+  #   {
+  #     
+  #     
+  #   }
+  # )
+  
+  
+  
   # updating the set of denominator variables
   observe({
     # old
@@ -302,50 +342,13 @@ server <- function(input, output) {
     
   })
   
-  
-  output$selectedCity <- renderText({
-    paste(c("selected Municpality=", input$selectedCity))
-  })
-  output$peerGroup <- renderText({
-    paste(c("selected Comparison Municipalities=", input$peerGroup))
-  })
-  
-  
-  output$selectedService <- renderText({
-    paste(c("selected Service =", input$selectedService))
-  })
-  
-  output$selectedYears <- renderText({
-    paste(c("selected Years =", input$selectedYears))
-  })
-  
-  output$selectedVar4num <- renderText({
-    paste(c("selected Service Metric =", input$selectedVar4num))
-  })
-  
-  output$selectedVar4denom <- renderText({
-    paste(c("seclected Denominator Variable =",input$selectedVar4denom))
-  })
-  
-  output$selectedQuotient <- renderText({
-    paste(c("Service Metric: ", v2lallinOne[[input$selectedVar4num]],
-            "/ Denominator|Context Variable:", 
-            v2lallinOne[[input$selectedVar4denom]]   ), collapse = "")
-  })
-  output$selectMultiplier <- renderText({ 
-    paste(c("Multiplier=", input$selectMultiplier)) })
-  
-  output$selectAvg <- renderText({
-    paste(c("Average seclected =",input$selectAvg))
-  })  
-  
-  output$selectCI <- renderText({
-    paste(c("CI seclected =",input$selectCI))
-  })
+################################################################################
+
   
   output$scatterplot <- renderPlotly({
-    
-    
+    print("renderPlotly starts here")
+    print("start-time=")
+    print(date())
     
     # input: sanity check
     # input$selectedVar4denom was removed
@@ -402,6 +405,12 @@ if (input$selectedUseDenominator){
 
 print("selectedYears=")
 print(input$selectedYears)
+print(typeof(input$selectedYears))
+print(str(input$selectedYears))
+# it seems dplyr::select() failed to evaluate input$selectedYears as a vector
+selectedYearsC<- as.character(input$selectedYears)
+print("selectedYearsC=")
+print(selectedYearsC)
 
 valueAvailableCities <- bd_data %>% 
   filter(Service == input$selectedService)   %>%
@@ -413,20 +422,18 @@ print("valueAvailableCities=")
 print(valueAvailableCities)
 print("selected city=")
 print(input$selectedCity)
-validate(
-  need(!is.na(match(input$selectedCity, valueAvailableCities)),
-       "\n\nSelected City did not report data\nChoose a different municipality.")
-)
+# validate(
+#   need(!is.na(match(input$selectedCity, valueAvailableCities)),
+#        "\n\nSelected City did not report data\nChoose a different municipality.")
+# )
   
-
-
 
 data_sc_nm <- bd_data %>% 
   filter(Service == input$selectedService)   %>%
   filter(Variable==input$selectedVar4num)    %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)        %>%
-  select(input$selectedYears)        %>% 
+  select(all_of(selectedYearsC))        %>% 
   as.matrix()
 data_sc_nm <- 10^as.integer(input$selectMultiplier) *  data_sc_nm
 
@@ -442,18 +449,22 @@ print(data_sc_nm)
 ## ----------------------------------------------------------------------------
 # base-line data for the denominator
 # Census variables must be added
+
+if (useDenominator){ 
 data_sc_dm <- bd_data %>% 
   filter(Service == input$selectedService | Service =="Census")   %>%  
   filter(Variable==input$selectedVar4denom)  %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)        %>%
-  select(input$selectedYears)        %>% 
+  select(all_of(selectedYearsC))        %>% 
   as.matrix()
 print("data_sc_dm=1")
 print(data_sc_dm)
 dimnames(data_sc_dm)[[1]] <- input$selectedCity
 print("data_sc_dm=2")
 print(data_sc_dm)
+
+}
 ## ----------------------------------------------------------------------------
 
 
@@ -479,7 +490,7 @@ data_pg_nm <- bd_data %>%
   filter(Municipality %in% input$peerGroup) %>% 
   arrange(Municipality, Year) %>%
   spread(key=Year, value=Value)       %>%
-  select(input$selectedYears) %>% 
+  select(all_of(selectedYearsC)) %>% 
   as.matrix()
 
 print("data_pg_nm(s)=")
@@ -514,19 +525,21 @@ print(data_pg_nm)
 ## ----------------------------------------------------------------------------
 # base-line data for the denominator
 # Census variables must be added
+if (useDenominator){
+
 data_pg_dm <- bd_data %>% 
   filter(Service == input$selectedService | Service =="Census")   %>%
   filter(Variable==input$selectedVar4denom) %>%
   filter(Municipality %in% updatedPeerGroup) %>% 
 #  filter(Municipality %in% input$peerGroup) %>% 
   spread(key=Year, value=Value)       %>%
-  select(input$selectedYears) %>% 
+  select(all_of(selectedYearsC)) %>% 
   as.matrix()
 #rownames(data_pg_dm) <- input$peerGroup
 rownames(data_pg_dm) <- updatedPeerGroup
 print("data_pg_dm=")
 print(data_pg_dm)
-
+}
 # ------------------------------------------------------------------------------
 # working on peer group
 
@@ -561,9 +574,8 @@ data4EachPeerCity_rawt <- rownames_to_column(as.data.frame(data4EachPeerCity_raw
 print("data4EachPeerCity_rawt=")
 print(data4EachPeerCity_rawt)
 
-data4EachPeerCity_rawt <- data4EachPeerCity_rawt %>% gather(input$selectedYears,
-                                  key="Year", 
-                                  value = "quotient")
+data4EachPeerCity_rawt <- data4EachPeerCity_rawt %>%
+  gather(selectedYearsC, key="Year", value = "quotient")
 print("data4EachPeerCity_rawt=")
 print(data4EachPeerCity_rawt)
 
@@ -579,7 +591,7 @@ if (useDenominator){
 
 
 data4EachPeerCity <- tmpTibblePg  %>% 
-  gather(input$selectedYears, key="Year", value = "quotient")
+  gather(selectedYearsC, key="Year", value = "quotient")
 
 
 print("data4EachPeerCity=")
@@ -588,7 +600,7 @@ print(data4EachPeerCity)
 
 
 summarizedPG <- tmpTibblePg %>% 
-  gather(input$selectedYears, key="Year", value = "quotient") %>%
+  gather(selectedYearsC, key="Year", value = "quotient") %>%
   summarySE(measurevar = "quotient", groupvars = "Year")
 
 
@@ -616,7 +628,7 @@ data4plot <- rownames_to_column(as.data.frame(data4plot_raw), var="catgry") %>%
   as_tibble()
 if (ncol(data4plot) == 2){
   print("***** column is 3 *****")
-  yr <- input$selectedYears[1]
+  yr <- selectedYearsC[1]
   print(yr)
   data4plot <- data4plot %>% dplyr::rename(!!yr:= "V1")
 } else {
@@ -630,25 +642,25 @@ print(data4plot)
 
 # the following line fails if the number of years is 1
 data4plot_sc <- data4plot %>% 
-  gather(input$selectedYears, key = "Year", value = "quotient") %>%
+  gather(selectedYearsC, key = "Year", value = "quotient") %>%
   filter(catgry== input$selectedCity)
 print("data4plot_sc=")
 print(data4plot_sc)
 
 data4plot_pg <- data4plot %>% 
-  gather(input$selectedYears, key = "Year", value = "quotient") %>%
+  gather(selectedYearsC, key = "Year", value = "quotient") %>%
   filter(catgry != input$selectedCity)
 print("data4plot_pg=")
 print(data4plot_pg)
 
 data4plot_pgx <- data4plot_pg %>% add_column(ci = summarizedPG[["ci"]])
-
+print("end of data-prep for plot")
 # -----------------------------------------------------------------------------
 # plot
 # -----------------------------------------------------------------------------
 # An if-block after ggplot() seems not to accept more than 1 geom_xxx 
 # statements within it and the following incremental approach was used
-
+print("beginning of plot")
 # baseline rendering 
 plt1 <- data4plot_sc %>%
   ggplot(aes(x=Year, y=quotient)) +
@@ -656,6 +668,7 @@ plt1 <- data4plot_sc %>%
                 color="#A9A9A9") + scale_y_continuous(name="Value")
 
 if (input$selectAvg){
+  print("extra-step for adding average")
   # add an average line
   plt1 <- plt1 + 
             geom_line(data = data4plot_pg, 
@@ -673,7 +686,7 @@ if (input$selectAvg){
 } else {
   # each municipality's line is added 
   # tibble to be used
-  
+  print("no average, etc.")
   plt1 <- plt1 + 
     geom_line(data = data4EachPeerCity_rawt, 
               aes(x = Year, y = quotient, group = catgry, color = catgry)) +
@@ -684,7 +697,7 @@ if (input$selectAvg){
 
 print("numerator=")
 print(input$selectedVar4num)
-print("name check: numerator=")
+print("numerator's name(label) check=")
 metricVarLabel <- 
   names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4num)]
 
@@ -697,7 +710,7 @@ print(input$selectedVar4denom)
 print("name check: denominator: input$selectedVar4denom=")
 print("current input$selectedService is=")
 print(input$selectedService)
-contextVarLabel <-v2lallinOne[[input$selectedVar4denom]]
+contextVarLabel <- v2lallinOne[[input$selectedVar4denom]]
   # names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4denom)]
 
 print("contextVarLabel=")
@@ -707,11 +720,10 @@ if (useDenominator){
   print("use denominator case: variable-name")
   contextVarLabel <- paste("/Denominator|Context Variable: ",contextVarLabel)
 } else{
-  print("no denominator: blank")
+  print("no denominator case: use blank")
   contextVarLabel<-""
 }
 
-print(names(input$selectedVar4denom))
 # old
 # titleText <- paste(c("" , 
 #                      input$selectedVar4num, " ", 
@@ -773,7 +785,9 @@ plt1 <- plt1 +
 
 ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", width = paperWidth, 
        height = paerHeight, units = "in")
-print("= END =================================================================")
+print("= END=================================================================")
+print("endtime=")
+print(date())
 # hide plotly's modebar
 ggplotly(plt1) %>% config(displayModeBar = FALSE)
 }) # end of tab 1's plot

@@ -32,11 +32,11 @@ s_all_list <- bd_data %>% distinct(Service) %>% pull()
 
 
 
-y_list <- bd_data %>% distinct(Year) %>% pull() 
+y_list <- bd_data %>% distinct(Year) %>% pull() %>% as.character()
 
 
 # all M names vector
-citylabel <-c("Apex", "Chapel Hill",   "Charlotte", "Concord", "Goldsboro", "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
+citylabel <-c("Apex", "Chapel Hill", "Charlotte", "Concord", "Goldsboro", "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
 
 # Apex's peergroup vector
 rvllabel <- c("Chapel Hill",   "Charlotte", "Concord", "Goldsboro", "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
