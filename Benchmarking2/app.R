@@ -413,9 +413,9 @@ print(input$selectedYears)
 print(typeof(input$selectedYears))
 print(str(input$selectedYears))
 # dplyr::select() failed to evaluate input$selectedYears as a vector
-# selectedYearsC<- as.character(input$selectedYears)
-# print("selectedYearsC=")
-# print(selectedYearsC)
+selectedYearsC<- as.character(input$selectedYears)
+print("selectedYearsC=")
+print(selectedYearsC)
 
 valueAvailableCities <- bd_data %>% 
   filter(Service == input$selectedService)   %>%
@@ -427,28 +427,49 @@ print("valueAvailableCities=")
 print(valueAvailableCities)
 print("selected city=")
 print(input$selectedCity)
-validate(
-  need(!is.na(match(input$selectedCity, valueAvailableCities)),
-       paste("\n\nThe selected base municipality (", 
-             input$selectedCity
-             ,") has not yet reported data about\n\t",serviceNameFull,
-             "\nfor these years.\n","\nPlease choose a different base municipality.")
-       )
-)
-  
+
+msg_no_base_m_data <-"" 
+if (is.na(match(input$selectedCity, valueAvailableCities))){
+  msg_no_base_m_data <-  paste("\nNote: The selected base municipality (", 
+input$selectedCity,") has not yet reported (",serviceNameFull,
+")-data for these years.")
+}
+
+# validate(
+#   need(!is.na(match(input$selectedCity, valueAvailableCities)),
+#        paste("\n\nThe selected base municipality (", 
+#              input$selectedCity
+#              ,") has not yet reported data about\n\t",serviceNameFull,
+#              "\nfor these years.\n","\nPlease choose a different base municipality.")
+#        )
+# )
+
+
+tmp_data_sc_nm <- bd_data %>% 
+  filter(Service == input$selectedService)   %>%
+  filter(Variable==input$selectedVar4num)    %>%
+  filter(Municipality == input$selectedCity) %>%
+  spread(key=Year, value=Value)  %>%
+  select(selectedYearsC)
+print("tmp_data_sc_nm=")
+print(tmp_data_sc_nm)
 
 data_sc_nm <- bd_data %>% 
   filter(Service == input$selectedService)   %>%
   filter(Variable==input$selectedVar4num)    %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)        %>%
-  select(input$selectedYears)        %>% 
+  select(selectedYearsC)        %>% 
   as.matrix()
 data_sc_nm <- 10^as.integer(input$selectMultiplier) *  data_sc_nm
-
 print("data_sc_nm=1")
+print(data_sc_nm)
 print(str(data_sc_nm))
 #dimnames(data_sc_nm)[[1]] <- input$selectedCity
+print("length(input$selectedCity)=")
+print(length(input$selectedCity))
+print("length(rownames(data_sc_nm)=")
+print(length(rownames(data_sc_nm)))
 rownames(data_sc_nm)<-  input$selectedCity
 print("data_sc_nm=2")
 print(data_sc_nm)
@@ -465,7 +486,7 @@ data_sc_dm <- bd_data %>%
   filter(Variable==input$selectedVar4denom)  %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)        %>%
-  select(input$selectedYears)        %>% 
+  select(selectedYearsC)        %>% 
   as.matrix()
 print("data_sc_dm=1")
 print(data_sc_dm)
@@ -499,7 +520,7 @@ data_pg_nm <- bd_data %>%
   filter(Municipality %in% input$peerGroup) %>% 
   arrange(Municipality, Year) %>%
   spread(key=Year, value=Value)       %>%
-  select(input$selectedYears) %>% 
+  select(selectedYearsC) %>% 
   as.matrix()
 
 print("data_pg_nm(s)=")
@@ -524,8 +545,8 @@ updatedPeerGroup <- bd_data %>%
   distinct(Municipality) %>% pull(Municipality)
 print("updatedPeerGroup=")
 print(updatedPeerGroup)
-# rownames(data_pg_nm) <- input$peerGroup
-rownames(data_pg_nm) <- updatedPeerGroup
+rownames(data_pg_nm) <- input$peerGroup
+#rownames(data_pg_nm) <- updatedPeerGroup
 print("data_pg_nm(a)=")
 print(data_pg_nm)
 
@@ -542,7 +563,7 @@ data_pg_dm <- bd_data %>%
   filter(Municipality %in% updatedPeerGroup) %>% 
 #  filter(Municipality %in% input$peerGroup) %>% 
   spread(key=Year, value=Value)       %>%
-  select(input$selectedYears) %>% 
+  select(selectedYearsC) %>% 
   as.matrix()
 #rownames(data_pg_dm) <- input$peerGroup
 rownames(data_pg_dm) <- updatedPeerGroup
@@ -553,9 +574,9 @@ print(data_pg_dm)
 # working on peer group
 
 print("selectedYears=")
-print(input$selectedYears)
+print(selectedYearsC)
 print("selectedYears:length=")
-print(length(input$selectedYears))
+print(length(selectedYearsC))
 
 
 
@@ -584,7 +605,7 @@ print("data4EachPeerCity_rawt=")
 print(data4EachPeerCity_rawt)
 
 data4EachPeerCity_rawt <- data4EachPeerCity_rawt %>%
-  gather(input$selectedYears, key="Year", value = "quotient")
+  gather(selectedYearsC, key="Year", value = "quotient")
 print("data4EachPeerCity_rawt=")
 print(data4EachPeerCity_rawt)
 
@@ -600,7 +621,7 @@ if (useDenominator){
 
 
 data4EachPeerCity <- tmpTibblePg  %>% 
-  gather(input$selectedYears, key="Year", value = "quotient")
+  gather(selectedYearsC, key="Year", value = "quotient")
 
 
 print("data4EachPeerCity=")
@@ -609,7 +630,7 @@ print(data4EachPeerCity)
 
 
 summarizedPG <- tmpTibblePg %>% 
-  gather(input$selectedYears, key="Year", value = "quotient") %>%
+  gather(selectedYearsC, key="Year", value = "quotient") %>%
   summarySE(measurevar = "quotient", groupvars = "Year")
 
 
@@ -637,7 +658,7 @@ data4plot <- rownames_to_column(as.data.frame(data4plot_raw), var="catgry") %>%
   as_tibble()
 if (ncol(data4plot) == 2){
   print("***** column is 3 *****")
-  yr <- input$selectedYears[1]
+  yr <- selectedYearsC[1]
   print(yr)
   data4plot <- data4plot %>% dplyr::rename(!!yr:= "V1")
 } else {
@@ -651,13 +672,13 @@ print(data4plot)
 
 # the following line fails if the number of years is 1
 data4plot_sc <- data4plot %>% 
-  gather(input$selectedYears, key = "Year", value = "quotient") %>%
+  gather(selectedYearsC, key = "Year", value = "quotient") %>%
   filter(catgry== input$selectedCity)
 print("data4plot_sc=")
 print(data4plot_sc)
 
 data4plot_pg <- data4plot %>% 
-  gather(input$selectedYears, key = "Year", value = "quotient") %>%
+  gather(selectedYearsC, key = "Year", value = "quotient") %>%
   filter(catgry != input$selectedCity)
 print("data4plot_pg=")
 print(data4plot_pg)
@@ -778,13 +799,17 @@ print(paerHeight)
 
 # furnish the graph with its title, etc.
 plt1 <- plt1 +
-  ggtitle(titleText)+
-  labs(caption = subtitleText)
+#  ggtitle(title=titleText, subtitle = msg_no_base_m_data) +
+  labs(
+    title=titleText, subtitle = msg_no_base_m_data,
+    
+    caption = subtitleText)
 
 
 
 plt1 <- plt1 +
   theme(plot.title = element_text(vjust = 5))+
+  theme(plot.subtitle = element_text(color="red") ) +
   theme(plot.margin = margin(t=40, l=20)) +
   theme(plot.caption = element_text(hjust = 0)) +
   theme(axis.title.y = element_blank()  ) 
