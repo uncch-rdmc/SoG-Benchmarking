@@ -377,6 +377,12 @@ print("= renderPlotly: START ================================================")
 
 print("selected Service=")
 print(input$selectedService)
+
+print("full service name=")
+serviceNameFull<- names(srvclngToShrtRefLstWoc)[which(srvclngToShrtRefLstWoc == input$selectedService)]
+print(serviceNameFull)
+
+
 print("currently selected numerator=")
 print(input$selectedVar4num)
 
@@ -421,10 +427,14 @@ print("valueAvailableCities=")
 print(valueAvailableCities)
 print("selected city=")
 print(input$selectedCity)
-# validate(
-#   need(!is.na(match(input$selectedCity, valueAvailableCities)),
-#        "\n\nSelected City did not report data\nChoose a different municipality.")
-# )
+validate(
+  need(!is.na(match(input$selectedCity, valueAvailableCities)),
+       paste("\n\nThe selected base municipality (", 
+             input$selectedCity
+             ,") has not yet reported data about\n\t",serviceNameFull,
+             "\nfor these years.\n","\nPlease choose a different base municipality.")
+       )
+)
   
 
 data_sc_nm <- bd_data %>% 
@@ -732,9 +742,7 @@ titleText <- paste(c("Service Metric: " ,
                      metricVarLabel,  contextVarLabel), collapse = "")
 print("titleText=")
 print(titleText)
-print("full service name=")
-serviceNameFull<- names(srvclngToShrtRefLstWoc)[which(srvclngToShrtRefLstWoc == input$selectedService)]
-print(serviceNameFull)
+
 
 print("multiplier=")
 print(input$selectMultiplier)
