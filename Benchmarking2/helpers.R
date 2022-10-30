@@ -10,8 +10,10 @@ library(scales)
 library(rjson)
 library(Rmisc)
 #bd_data<-read_rds(file="./Benchmarking_2_0_Data_Long_Form.rds")
-bd_data <-read_rds(file="df_combined_uc.rds")
-
+# raw dataset
+# bd_data <-read_rds(file="df_combined_uc.rds")
+# completed dataset
+bd_data <-read_rds(file="bd_data_completed.rds")
 
 # label data files
 all_service_abbrev_to_full<-read_rds(file = "all_service_abbrev_to_full.rds")
@@ -36,14 +38,19 @@ y_list <- bd_data %>% distinct(Year) %>% pull() %>% as.character()
 
 
 # all M names vector
-citylabel <-c("Apex", "Chapel Hill", "Charlotte", "Concord", "Goldsboro", "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
+citylabel <-c("Apex", "Chapel Hill", "Charlotte", "Concord", "Goldsboro", 
+              "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
 
 # Apex's peergroup vector
-rvllabel <- c("Chapel Hill",   "Charlotte", "Concord", "Goldsboro", "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
+rvllabel <- c("Chapel Hill",   "Charlotte", "Concord", "Goldsboro", 
+              "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
 
 rvllabellist <- setNames(as.list(rvllabel), rvllabel)
 
-v_list <- bd_data %>% filter(Municipality=="Apex") %>% group_by(Service) %>% distinct(Variable)
+v_list <- bd_data %>% 
+  filter(Municipality=="Apex") %>% 
+  group_by(Service) %>% 
+  distinct(Variable)
 
 #s1numlist   <- bd_data %>% filter(Municipality=="Apex") %>% group_by(Service) %>% distinct(Variable) %>% filter(Service == s_list[1] ) %>% pull()
 #s1denomlist <- bd_data %>% filter(Municipality=="Apex") %>% group_by(Service) %>% distinct(Variable) %>% filter(Service == s_list[1] | Service=="Census") %>% pull()

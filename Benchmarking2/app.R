@@ -346,9 +346,8 @@ server <- function(input, output) {
 
   
   output$scatterplot <- renderPlotly({
-    print("renderPlotly starts here")
-    print("start-time=")
-    print(date())
+print("= renderPlotly: START ================================================")
+    base::message("start-time=", date())
     
     # input: sanity check
     # input$selectedVar4denom was removed
@@ -375,7 +374,7 @@ server <- function(input, output) {
 # base-line data for the numerator 
 # warning: since the same variable name is used in more than one services
 # the service filter must be applied first
-print("= START ===============================================================")
+
 print("selected Service=")
 print(input$selectedService)
 print("currently selected numerator=")
@@ -407,10 +406,10 @@ print("selectedYears=")
 print(input$selectedYears)
 print(typeof(input$selectedYears))
 print(str(input$selectedYears))
-# it seems dplyr::select() failed to evaluate input$selectedYears as a vector
-selectedYearsC<- as.character(input$selectedYears)
-print("selectedYearsC=")
-print(selectedYearsC)
+# dplyr::select() failed to evaluate input$selectedYears as a vector
+# selectedYearsC<- as.character(input$selectedYears)
+# print("selectedYearsC=")
+# print(selectedYearsC)
 
 valueAvailableCities <- bd_data %>% 
   filter(Service == input$selectedService)   %>%
@@ -433,7 +432,7 @@ data_sc_nm <- bd_data %>%
   filter(Variable==input$selectedVar4num)    %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)        %>%
-  select(all_of(selectedYearsC))        %>% 
+  select(input$selectedYears)        %>% 
   as.matrix()
 data_sc_nm <- 10^as.integer(input$selectMultiplier) *  data_sc_nm
 
@@ -456,7 +455,7 @@ data_sc_dm <- bd_data %>%
   filter(Variable==input$selectedVar4denom)  %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)        %>%
-  select(all_of(selectedYearsC))        %>% 
+  select(input$selectedYears)        %>% 
   as.matrix()
 print("data_sc_dm=1")
 print(data_sc_dm)
@@ -490,7 +489,7 @@ data_pg_nm <- bd_data %>%
   filter(Municipality %in% input$peerGroup) %>% 
   arrange(Municipality, Year) %>%
   spread(key=Year, value=Value)       %>%
-  select(all_of(selectedYearsC)) %>% 
+  select(input$selectedYears) %>% 
   as.matrix()
 
 print("data_pg_nm(s)=")
@@ -533,7 +532,7 @@ data_pg_dm <- bd_data %>%
   filter(Municipality %in% updatedPeerGroup) %>% 
 #  filter(Municipality %in% input$peerGroup) %>% 
   spread(key=Year, value=Value)       %>%
-  select(all_of(selectedYearsC)) %>% 
+  select(input$selectedYears) %>% 
   as.matrix()
 #rownames(data_pg_dm) <- input$peerGroup
 rownames(data_pg_dm) <- updatedPeerGroup
@@ -575,7 +574,7 @@ print("data4EachPeerCity_rawt=")
 print(data4EachPeerCity_rawt)
 
 data4EachPeerCity_rawt <- data4EachPeerCity_rawt %>%
-  gather(selectedYearsC, key="Year", value = "quotient")
+  gather(input$selectedYears, key="Year", value = "quotient")
 print("data4EachPeerCity_rawt=")
 print(data4EachPeerCity_rawt)
 
@@ -591,7 +590,7 @@ if (useDenominator){
 
 
 data4EachPeerCity <- tmpTibblePg  %>% 
-  gather(selectedYearsC, key="Year", value = "quotient")
+  gather(input$selectedYears, key="Year", value = "quotient")
 
 
 print("data4EachPeerCity=")
@@ -600,7 +599,7 @@ print(data4EachPeerCity)
 
 
 summarizedPG <- tmpTibblePg %>% 
-  gather(selectedYearsC, key="Year", value = "quotient") %>%
+  gather(input$selectedYears, key="Year", value = "quotient") %>%
   summarySE(measurevar = "quotient", groupvars = "Year")
 
 
@@ -628,7 +627,7 @@ data4plot <- rownames_to_column(as.data.frame(data4plot_raw), var="catgry") %>%
   as_tibble()
 if (ncol(data4plot) == 2){
   print("***** column is 3 *****")
-  yr <- selectedYearsC[1]
+  yr <- input$selectedYears[1]
   print(yr)
   data4plot <- data4plot %>% dplyr::rename(!!yr:= "V1")
 } else {
@@ -642,13 +641,13 @@ print(data4plot)
 
 # the following line fails if the number of years is 1
 data4plot_sc <- data4plot %>% 
-  gather(selectedYearsC, key = "Year", value = "quotient") %>%
+  gather(input$selectedYears, key = "Year", value = "quotient") %>%
   filter(catgry== input$selectedCity)
 print("data4plot_sc=")
 print(data4plot_sc)
 
 data4plot_pg <- data4plot %>% 
-  gather(selectedYearsC, key = "Year", value = "quotient") %>%
+  gather(input$selectedYears, key = "Year", value = "quotient") %>%
   filter(catgry != input$selectedCity)
 print("data4plot_pg=")
 print(data4plot_pg)
@@ -718,7 +717,7 @@ print(contextVarLabel)
 
 if (useDenominator){
   print("use denominator case: variable-name")
-  contextVarLabel <- paste("/Denominator|Context Variable: ",contextVarLabel)
+  contextVarLabel <- paste("\n/Denominator|Context Variable: ",contextVarLabel)
 } else{
   print("no denominator case: use blank")
   contextVarLabel<-""
@@ -777,6 +776,8 @@ plt1 <- plt1 +
 
 
 plt1 <- plt1 +
+  theme(plot.title = element_text(vjust = 5))+
+  theme(plot.margin = margin(t=40, l=20)) +
   theme(plot.caption = element_text(hjust = 0)) +
   theme(axis.title.y = element_blank()  ) 
   # labs(title = titleText,
@@ -785,9 +786,9 @@ plt1 <- plt1 +
 
 ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", width = paperWidth, 
        height = paerHeight, units = "in")
-print("= END=================================================================")
-print("endtime=")
-print(date())
+base::message("= renderPlotly: END ==========================================")
+base::message("endtime=", date())
+
 # hide plotly's modebar
 ggplotly(plt1) %>% config(displayModeBar = FALSE)
 }) # end of tab 1's plot
