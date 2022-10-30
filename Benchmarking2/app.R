@@ -699,7 +699,7 @@ print(input$selectedVar4num)
 print("numerator's name(label) check=")
 metricVarLabel <- 
   names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4num)]
-
+metricVarLabel<- stringr::str_wrap(metricVarLabel, width = 80)
 print(metricVarLabel)
   
 # print("varset4denominator=") 
@@ -711,13 +711,13 @@ print("current input$selectedService is=")
 print(input$selectedService)
 contextVarLabel <- v2lallinOne[[input$selectedVar4denom]]
   # names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4denom)]
-
+contextVarLabel <- stringr::str_wrap(contextVarLabel, width = 80)
 print("contextVarLabel=")
 print(contextVarLabel)
 
 if (useDenominator){
   print("use denominator case: variable-name")
-  contextVarLabel <- paste("\n/Denominator|Context Variable: ",contextVarLabel)
+  contextVarLabel <- paste("\n/Denominator: ",contextVarLabel)
 } else{
   print("no denominator case: use blank")
   contextVarLabel<-""
