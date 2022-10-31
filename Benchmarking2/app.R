@@ -365,7 +365,7 @@ server <- function(input, output) {
     # old
     #varset4denominator<-c(service2var[["Census"]], netlist)
     # new
-    varset4denominator <- c(srv2varlbllst[["census"]], netlist)
+    varset4denominator <- c(netlist, srv2varlbllst[["census"]])
     # print("varset4denominator=")
     # print(varset4denominator)
     
@@ -486,9 +486,8 @@ print(input$selectedCity)
 
 msg_no_base_m_data <-"" 
 if (is.na(match(input$selectedCity, valueAvailableCities))){
-  msg_no_base_m_data <-  paste("\nNote: The selected base municipality (", 
-input$selectedCity,") has not yet reported (",serviceNameFull,
-")-data for these years.")
+  msg_no_base_m_data <-  paste("\nData for the selected base municipality (", 
+input$selectedCity,") is not available for these years.")
 }
 
 # validate(
@@ -900,7 +899,7 @@ print(contextVarLabel)
 
 if (useDenominator){
   print("use denominator case: variable-name")
-  contextVarLabel <- paste("\n/Denominator: ",contextVarLabel)
+  contextVarLabel <- paste("\n/",contextVarLabel)
 } else{
   print("no denominator case: use blank")
   contextVarLabel<-""
@@ -911,7 +910,7 @@ if (useDenominator){
 #                      input$selectedVar4num, " ", 
 #                      input$selectedVar4denom), collapse = "")
 # new 
-titleText <- paste(c("Service Metric: " , 
+titleText <- paste(c("" , 
                      metricVarLabel,  contextVarLabel), collapse = "")
 print("titleText=")
 print(titleText)
