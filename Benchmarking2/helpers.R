@@ -31,7 +31,7 @@ m_tbl  <- bd_data %>% distinct(Municipality)
 m_list <- bd_data %>% distinct(Municipality) %>% pull() 
 
 # to be replaced with a named list below: srvclngToShrtRefLst
-s_list <- bd_data %>% distinct(Service) %>% filter(Service !="Census") %>% pull()
+s_list <- bd_data %>% distinct(Service) %>% filter(Service !="census") %>% pull()
 
 # to be repaced with a named list 
 s_all_list <- bd_data %>% distinct(Service) %>% pull()
@@ -57,9 +57,9 @@ v_list <- bd_data %>%
   distinct(Variable)
 
 #s1numlist   <- bd_data %>% filter(Municipality=="Apex") %>% group_by(Service) %>% distinct(Variable) %>% filter(Service == s_list[1] ) %>% pull()
-#s1denomlist <- bd_data %>% filter(Municipality=="Apex") %>% group_by(Service) %>% distinct(Variable) %>% filter(Service == s_list[1] | Service=="Census") %>% pull()
+#s1denomlist <- bd_data %>% filter(Municipality=="Apex") %>% group_by(Service) %>% distinct(Variable) %>% filter(Service == s_list[1] | Service=="census") %>% pull()
 #s1numlist   <- v_list %>% filter(Service == s_list[1] ) %>% pull()
-#s1denomlist <- v_list %>% filter(Service == s_list[1] | Service=="Census") %>% pull()
+#s1denomlist <- v_list %>% filter(Service == s_list[1] | Service=="census") %>% pull()
 
 service2var <- list()
 valueLst<-list()
@@ -84,7 +84,7 @@ for (row in 1:nrow(all_varNameToLabel)) {
 # usage: v2lallinOne[["qamr01"]]
 
 censusVars <- bd_data  %>% 
-  filter(Service=="Census") %>% 
+  filter(Service=="census") %>% 
   distinct(Variable) %>% pull()
 
 
@@ -100,7 +100,7 @@ for (i in 1:dim(all_service_abbrev_to_full)[1]) {
 # without census
 srvclngToShrtRefLstWoc <-list()
 for (i in 1:dim(all_service_abbrev_to_full)[1]) {
-  if (all_service_abbrev_to_full$lc[[i]]=="Census"){
+  if (all_service_abbrev_to_full$lc[[i]]=="census"){
     next
   }
   srvclngToShrtRefLstWoc[[all_service_abbrev_to_full$Full[i]]] <- all_service_abbrev_to_full$lc[i]
