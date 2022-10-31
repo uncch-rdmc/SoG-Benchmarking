@@ -632,32 +632,36 @@ if (!is.null(input$peerGroup)){
     select(selectedYearsC) %>% 
     as.matrix()
   
-  print("data_pg_nm(s)=")
-  print(data_pg_nm)
+  # print("data_pg_nm(s)=")
+  # print(data_pg_nm)
   
   data_pg_nm <- 10^as.integer(input$selectMultiplier) * data_pg_nm
-  print("data_pg_nm(b)=")
-  print(data_pg_nm)
-  print("input$peerGroup=")
-  print(input$peerGroup)
+  
+  # print("data_pg_nm(b)=")
+  # print(data_pg_nm)
+  # print("input$peerGroup=")
+  # print(input$peerGroup)
+  
   # if a dataset is complete,
   # input$peerGroup can be used;
   # if a dataset is not complete,
   # i.e., some municipalities did not report, 
   # a peer-member set based on an actual data is necessary
   
-  updatedPeerGroup <- bd_data %>% 
-    filter(Service == input$selectedService)   %>%
-    filter(Variable== input$selectedVar4num)   %>% 
-    filter(Municipality %in%  input$peerGroup) %>% 
-    arrange(Municipality) %>%
-    distinct(Municipality) %>% pull(Municipality)
-  print("updatedPeerGroup=")
-  print(updatedPeerGroup)
+  # updatedPeerGroup <- bd_data %>% 
+  #   filter(Service == input$selectedService)   %>%
+  #   filter(Variable== input$selectedVar4num)   %>% 
+  #   filter(Municipality %in%  input$peerGroup) %>% 
+  #   arrange(Municipality) %>%
+  #   distinct(Municipality) %>% pull(Municipality)
+  # 
+  # print("updatedPeerGroup=")
+  # print(updatedPeerGroup)
+  
   rownames(data_pg_nm) <- input$peerGroup
-  #rownames(data_pg_nm) <- updatedPeerGroup
-  print("data_pg_nm(a)=")
-  print(data_pg_nm)
+
+  # print("data_pg_nm(a)=")
+  # print(data_pg_nm)
   
 }
 ## peer group: denominator specific
@@ -668,15 +672,15 @@ if (!is.null(input$peerGroup)){
   if (useDenominator){
     
     data_pg_dm <- bd_data %>% 
-      filter(Service == input$selectedService | Service =="")   %>%
+      filter(Service == input$selectedService | Service =="census")   %>%
       filter(Variable==input$selectedVar4denom) %>%
-      filter(Municipality %in% updatedPeerGroup) %>% 
-      #  filter(Municipality %in% input$peerGroup) %>% 
+      #filter(Municipality %in% updatedPeerGroup) %>% 
+      filter(Municipality %in% input$peerGroup) %>% 
       spread(key=Year, value=Value)       %>%
       select(selectedYearsC) %>% 
       as.matrix()
-    #rownames(data_pg_dm) <- input$peerGroup
-    rownames(data_pg_dm) <- updatedPeerGroup
+    rownames(data_pg_dm) <- input$peerGroup
+    # rownames(data_pg_dm) <- updatedPeerGroup
     print("data_pg_dm=")
     print(data_pg_dm)
   }
@@ -917,10 +921,12 @@ print("multiplier=")
 print(input$selectMultiplier)
 multiplierValue <- as.character( 10^as.integer(input$selectMultiplier) )
 
-# peerGroupList <- paste(input$peerGroup,collapse=",")
+
 peerGroupList <-""
-if (!is.null(input$peerGroup)){ 
-peerGroupList <- paste(updatedPeerGroup, collapse=",")
+if (!is.null(input$peerGroup)) {
+  peerGroupList <- paste(input$peerGroup,collapse=", ")
+  # peerGroupList <- paste(updatedPeerGroup, collapse = ", ")
+  peerGroupList <- stringr::str_wrap(peerGroupList, width = 80)
 }
 
 
@@ -949,8 +955,9 @@ print("paperWidth=")
 print(paperWidth)
 print("paerHeight=")
 print(paerHeight)
-
+# ========================================================================
 # furnish the graph with its title, etc.
+# ========================================================================
 plt1 <- plt1 +
 #  ggtitle(title=titleText, subtitle = msg_no_base_m_data) +
   labs(
@@ -961,13 +968,17 @@ plt1 <- plt1 +
 
 
 plt1 <- plt1 +
-  theme(plot.title = element_text(vjust = 5))+
-  theme(plot.subtitle = element_text(color="red") ) +
-  theme(plot.margin = margin(t=40, l=20)) +
-  theme(plot.caption = element_text(hjust = 0)) +
-  theme(axis.title.y = element_blank()  ) 
-  # labs(title = titleText,
-  #      caption = subtitleText)
+  theme(plot.title =   element_text(size=20, vjust = 5))+
+  theme(plot.subtitle =element_text(color="red") ) +
+  theme(plot.margin =  margin(t=40, l=20)) +
+  theme(plot.caption = element_text(size = 12, hjust = 0)) +
+  theme(legend.title = element_text(size=14)) +
+  theme(legend.text =  element_text(size=12)) +
+  theme(axis.title.y = element_blank()  ) +
+  theme(axis.title.x=  element_text(size=14)) +
+  theme(axis.text.y=   element_text(size=12)) +
+  theme(axis.text.x=   element_text(size=12))
+
 
 
 ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", width = paperWidth, 
