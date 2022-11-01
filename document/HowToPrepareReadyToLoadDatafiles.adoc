@@ -1,0 +1,138 @@
+= How to prepare data files for the Dashboard 
+
+:toc: macro
+:toclevels: 3
+:icons: font 
+
+toc::[]
+
+== Steps as fo 2022-10-31 
+
+[source, R]
+----
+
+###############################################################################
+# data prep steps of 2022-10-31
+###############################################################################
+
+# read the worksheet into R
+# machine generated read commands
+library(tidyverse)
+library(readxl)
+
+# step 0: remove column and repacke long-service names with shorter one
+# step 1 read datasheets
+
+amr_1 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='1')
+bi_2 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='2')
+hr_3 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='3')
+pr_4 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='4')
+ec_5 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='5')
+fs_6 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='6')
+fm_7 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='7')
+hore_8 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='8')
+ps_9 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='9')
+rrc_10 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='10')
+wws_11 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='11')
+ws_12 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='12')
+yl_13 <- read_excel('Benchmarking_Dataset_Odum_2022-10-30.xlsx', sheet='13')
+
+# rm (amr_1, bi_2, hr_3, pr_4, ec_5,fs_6, fm_7, hore_8, ps_9,rrc_10, wws_11,ws12, yl_13)
+
+# create the long format of the above for each service
+
+df_amr<-tidyr::gather(amr_1, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_bi<-tidyr::gather(bi_2, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_hr<-tidyr::gather(hr_3, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_pr<-tidyr::gather(pr_4, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_ec<-tidyr::gather(ec_5, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_fs<-tidyr::gather(fs_6, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_fm<-tidyr::gather(fm_7, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_hore<-tidyr::gather(hore_8, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_ps<-tidyr::gather(ps_9, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_rrc<-tidyr::gather(rrc_10, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_wws<-tidyr::gather(wws_11, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_ws<-tidyr::gather(ws_12, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+df_yl<-tidyr::gather(yl_13, key=s_var, value=s_value, -c(a_municipality, a_service, a_year))
+
+
+dflst<- list(df_amr, df_bi, df_hr, df_pr, df_ec, df_fs, df_fm, df_hore, df_ps, df_rrc, df_wws, df_ws, df_yl)
+df_all <- dplyr::bind_rows(dflst)
+write_rds(df_all, file="df_all_uc.rds")
+# rm(df_amr, df_bi, df_hr, df_pr, df_ec, df_fs, df_fm, df_hore, df_ps, df_rrc, df_wws, df_ws, df_yl)
+# rm (df_all)
+
+# renamed
+
+
+df_service_all <- df_all %>% 
+  dplyr::rename( Municipality=a_municipality,
+                 Variable=s_var,  
+                 Year = a_year,
+                 Service=a_service, Value=s_value) %>%
+  dplyr::select(Municipality, Variable, Year, Service, Value)
+df_service_all
+
+
+# read back census data
+
+# the following columns, Numerator and Denominator, must be removed from the dataset
+# df_census_all <- readRDS("~/Documents/experiments/visualization/benchmarking/examples/df_census_all.rds")
+# 
+# df_census_all <-  df_census_all %>%
+#   dplyr::select(-c(Numerator, Denominator)) %>%
+#   dplyr::relocate(Service, .before = Value) 
+# write
+
+# the following data contain the dataset ready to be combined
+library(readxl)
+bd_census_data <- read_excel("~/Documents/experiments/visualization/benchmarking/examples/censusdata.xlsx", 
+    sheet = "census_3_year_data")
+View(bd_census_data)
+write_rds(bd_census_data, file="bd_census_data_uc.rds")
+
+
+# combine the above two
+
+df_combined <- dplyr::bind_rows(list(df_service_all, bd_census_data))
+df_combined
+write_rds(df_combined, file= "df_combined_uc.rds")
+
+# complete dataset
+
+bd_data_imp <- 
+  df_combined %>%
+  tidyr::complete(Municipality, Variable, Year)
+write_rds(bd_data_imp, file="bd_data_completed.rds")
+# ajdustment
+
+# mutate-supplement function
+service_token <-function(x){
+  token <- stringr::str_match(x, "^(census)_\\d|^q([a-z]+)\\d")[2]
+  
+  if( is.na(token)){
+    token <-  stringr::str_match(x, "^(census)_\\d|^q([a-z]+)\\d")[3]
+  }
+  token
+}
+tmp_result <- bd_data_imp %>%
+  rowwise() %>% 
+  dplyr::mutate(Service = service_token(Variable)) %>%
+  dplyr::summarize(count_na = sum(is.na(Service)))
+
+
+tmp_result %>% dplyr::summarize(count_na = sum(is.na(Service)))
+# saving the complete file
+write_rds(tmp_result, file="bd_data_completed4.rds")
+tmp_result <- read_rds(file="bd_data_completed4.rds")
+
+
+# var-name-to-label hash file
+
+library(readxl)
+varNameLabel_2022_10_30 <- read_excel("varNameLabel_2022-10-30.xlsx",  sheet = "all_varN_to_varL_2022_10_30")
+varNameLabel_2022_10_30
+View(varNameLabel_2022_10_30)      
+write_rds(varNameLabel_2022_10_30, "all_varNameToLabel.rds")
+
+----

@@ -34,28 +34,8 @@ ui <- fluidPage(
         tabPanel("Home",
                  
                  
-    
+                 plotOutput(outputId= "scatterplot" )
 
-                # h3("UNC SoG Benchmark 2.0 Dashboard"),
-                 
-                 # textOutput("selectedQuotient", container = h4),
-                 # br(),
-                
-                
-                 #plotlyOutput(outputId = "scatterplot"),
-                 
-                 plotOutput(outputId= "scatterplot" ),
-                
-                 # hr(),
-                 # h3("Your selections"),
-                 # textOutput("selectedCity", container = p),
-                 # textOutput("peerGroup", container = p),
-                 # textOutput("selectedService", container = p),
-                 # textOutput("selectedYears", container=p),
-                 # textOutput("selectedVar4num", container = p),
-                 # textOutput("selectedVar4denom", container = p),
-                 # textOutput("selectAvg", container = p),  
-                 # textOutput("selectCI", container = p)
                  ),
 
         tabPanel("About",
@@ -107,8 +87,7 @@ checkboxGroupInput(inputId="selectedYears",
                    choices = y_list,
                    selected = y_list),
 
-# select a numerator variable:pulldown menu
-# 
+# select a numerator(metric) variable:pulldown menu
 
 selectInput(inputId='selectedVar4num', 
             label = 'Select Service Metric', 
@@ -122,6 +101,7 @@ checkboxInput(inputId='selectedUseDenominator',
               label = 'Use Denominator|Context Variable', 
               value = FALSE),
 
+# show/hide for the denominator 
 conditionalPanel(
   condition = "input.selectedUseDenominator == true",
 
@@ -131,9 +111,6 @@ selectInput(inputId='selectedVar4denom',
             choices = c()
             )
 ),
-
-
-
 
 
 # radio-button for Adjustment choices 
@@ -161,6 +138,7 @@ conditionalPanel(
 # Graph-Downloading button 
 downloadButton('downloadGraph'),
 
+# radio-button for page layout
 radioButtons(inputId = "selectPageLayout", 
              label = "Select Page Layout", 
              choices = list("Portrait"=0, "Landscape"=1),
@@ -181,45 +159,84 @@ radioButtons(inputId = "selectPageLayout",
 ################################################################################
 
 server <- function(input, output) {
+  
+  
 #------------------------------------------------------------------------------
-# observe blocks 
+# observeEvent blocks 
 #------------------------------------------------------------------------------
-# selecting the peer group
+# select-all or not peer group
 
   # when the selectAllpeer box is checked, all cities' boxes are checked
-  observe({
-    if (input$selectAllpeer){
-      updateCheckboxGroupInput(inputId ="peerGroup",
-         choices=citylabel[!citylabel %in% c(input$selectedCity)], 
-         selected=citylabel[!citylabel %in% c(input$selectedCity)]
-      )} else {
-            updateCheckboxGroupInput(inputId ="peerGroup",
-                  choices=citylabel[!citylabel %in% c(input$selectedCity)],
-                     selected=character(0))
-            shinyjs::disable(id="selectAvg")
+  observeEvent(input$selectAllpeer, {
+    if (input$selectAllpeer) {
+      # select all state
+      updateCheckboxGroupInput(inputId = "peerGroup",
+        choices = citylabel[!citylabel %in% c(input$selectedCity)],
+        selected = citylabel[!citylabel %in% c(input$selectedCity)])
+      # average button is allowed
+      shinyjs::enable(id="selectAvg")
+      
+    } else {
+      # there are two possible states of peerGroup checkboxGroup
+      # one state is all unselected 
+      # the other is some are unselected
+      # these two states must be separate handling
+      print("input$peerGroup: size=")
+      print(length(input$peerGroup))
+      if (length(input$peerGroup) == 0){
+        print("empty peerGroup case")
+        # unselect-all case: all-checked to all-unselected transition
+        # base city only selected
+        # 
+        # disable the average button because no member to calculate
+        updateCheckboxGroupInput(inputId = "peerGroup",
+                                 choices = citylabel[!citylabel %in% c(input$selectedCity)],
+                                 selected = character(0))
+        updateCheckboxInput(inputId = "selectAvg", value = FALSE)
+        shinyjs::disable(id="selectAvg")
+
+      } else  {
+        print("non-empty peerGroup case")
+        
+        if (length(input$peerGroup) == (length(citylabel)-1)){
+          updateCheckboxGroupInput(inputId = "peerGroup",
+                                   choices = citylabel[!citylabel %in% c(input$selectedCity)],
+                                   selected = character(0))
+          shinyjs::disable(id="selectAvg")
+          updateCheckboxInput(inputId = "selectAvg", value = FALSE)
+        } else {
+        
+        updateCheckboxGroupInput(inputId = "peerGroup",
+                                 choices = citylabel[!citylabel %in% c(input$selectedCity)],
+                                 selected = c(input$peerGroup))        
       }
+      }
+
+    }
     
   })
   
-  # observe({
-  #   if (!input$selectAllpeer){
-  #     updateCheckboxGroupInput(inputId ="peerGroup",
-  #           choices=citylabel[!citylabel %in% c(input$selectedCity)],
-  #              selected=character(0))
-  #     }
-  # 
+  # observeEvent(input$peerGroup,{
+    # if (!input$selectAllpeer){
+    #   updateCheckboxGroupInput(inputId ="peerGroup",
+    #         choices=citylabel[!citylabel %in% c(input$selectedCity)],
+    #            selected=c(input$peerGroup))
+    #   }
+
+    
+
   # })
   
   
-  # observe({ 
+  # observe({
   # 
   #   updateCheckboxGroupInput(
-  #                            inputId="peerGroup",
-  #                            choices=citylabel[!citylabel %in% c(input$selectedCity)], 
-  #                            selected=citylabel[!citylabel %in% c(input$selectedCity)])
-  #   
-  # })
+  #      inputId="peerGroup",
+  #       choices=citylabel[!citylabel %in% c(input$selectedCity)],
+  #       selected=citylabel[!citylabel %in% c(input$selectedCity)])
   # 
+  # })
+
   
   # the following block deals with "all cities" to "some cities" transition
   # uncheck the selectAllpeer box
@@ -229,11 +246,37 @@ server <- function(input, output) {
     if (identical(input$peerGroup, citylabel[!citylabel %in% c(input$selectedCity)])){
       print("select all cities")
       print(input$peerGroup)
+
       updateCheckboxInput(inputId = "selectAllpeer", value = TRUE)
+      shinyjs::enable(id="selectAvg")
+      
+      
+      
     } else {
       print("not select all cities")
+      
       print(input$peerGroup)
-      updateCheckboxInput(inputId = "selectAllpeer", value = FALSE)
+      if (is.null(input$peerGroup)){
+          print("input$peerGroup is null")
+        # disable the average checkbox
+
+      } else {
+       print("input$peerGroup is not null")
+        updateCheckboxInput(inputId = "selectAllpeer", value = FALSE)
+        updateCheckboxGroupInput(inputId ="peerGroup",
+            choices=citylabel[!citylabel %in% c(input$selectedCity)],
+             selected=c(input$peerGroup))
+        if (length(input$peerGroup)==1){
+          updateCheckboxInput(inputId = "selectAvg", value = FALSE)
+          shinyjs::disable(id="selectAvg")
+        } else {
+          shinyjs::enable(id="selectAvg")
+        }
+        
+        
+    }
+      
+      
     }
   })
 #------------------------------------------------------------------------------
@@ -348,10 +391,9 @@ server <- function(input, output) {
   
   
   # updating the set of denominator variables
-  observe({
-    # old
-    #rawlist <-  service2var[[input$selectedService]]
-    # new
+  observeEvent(input$selectedVar4num,{
+
+
     print("within observe(denominator): input$selectedService=")
     print(input$selectedService)
     print("within observe: input$selectedVar4num=")
@@ -373,23 +415,19 @@ server <- function(input, output) {
                       choices=c(varset4denominator) )
   })
   
-  observe({
-    if (!input$selectAvg){
-      updateCheckboxInput(inputId = "selectCI", label = "Add Confidence Interval (95%)", value = FALSE )
-    }
-    
-  })
+  # observeEvent(input$selectAvg, {
+  #   if (!input$selectAvg){
+  #     updateCheckboxInput(inputId = "selectCI", 
+  #       label = "Add Confidence Interval (95%)", value = FALSE )
+  #   }
+  #   
+  # })
   
 # when the checkbox of denominator|context var is turned off,
 # chart returns to normal   
-  observe({
+  observeEvent(input$selectedUseDenominator,{
     if (input$selectedUseDenominator){
-      # when the checkbox is unchecked 
-      # updateSelectInput(inputId = "selectedVar4denom", choices=c())
-      
       updateRadioButtons(inputId = "selectMultiplier", selected = 2)
-      
-      
     } else {
       updateRadioButtons(inputId = "selectMultiplier", selected = 0)
     }
@@ -431,6 +469,12 @@ print("= renderPlotly: START ================================================")
 # warning: since the same variable name is used in more than one services
 # the service filter must be applied first
 
+print("selected city=")
+print(input$selectedCity)
+    
+print("peerGroup=")
+print(input$peerGroup)
+    
 print("selected Service=")
 print(input$selectedService)
 
@@ -500,14 +544,14 @@ input$selectedCity,") is not available for these years.")
 # )
 
 
-# tmp_data_sc_nm <- bd_data %>% 
-#   filter(Service == input$selectedService)   %>%
-#   filter(Variable==input$selectedVar4num)    %>%
-#   filter(Municipality == input$selectedCity) %>%
-#   spread(key=Year, value=Value)  %>%
-#   select(selectedYearsC)
-# print("tmp_data_sc_nm=")
-# print(tmp_data_sc_nm)
+tmp_data_sc_nm <- bd_data %>%
+  filter(Service == input$selectedService)   %>%
+  filter(Variable==input$selectedVar4num)    %>%
+  filter(Municipality == input$selectedCity) %>%
+  spread(key=Year, value=Value)  %>%
+  select(selectedYearsC)
+print("tmp_data_sc_nm=")
+print(tmp_data_sc_nm)
 
 # if (all(is.na(tmp_data_sc_nm))){
 #   message("all NA case ======================================")
@@ -521,18 +565,20 @@ data_sc_nm <- bd_data %>%
   filter(Variable==input$selectedVar4num)    %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)        %>%
-#  select(selectedYearsC)        %>% 
+  select(selectedYearsC)        %>% 
   as.matrix()
-# print("data_sc_nm: afer as.matrix()=")
-# print(data_sc_nm)
+print("data_sc_nm: afer as.matrix()=")
+print(data_sc_nm)
 
-data_sc_nm <- t(as.matrix(data_sc_nm[c(4:6)]))
+# The following c(4:6) would fail if not all 3 years are selected
+#data_sc_nm <- t(as.matrix(data_sc_nm[c(4:6)]))
+# data_sc_nm <- t(as.matrix(data_sc_nm))
 # print("data_sc_nm: afer subset and t()=")
 # print(data_sc_nm)
 
 colnames(data_sc_nm) <- selectedYearsC
-# print("data_sc_nm: afer colnames=")
-# print(data_sc_nm)
+print("data_sc_nm: afer colnames=")
+print(data_sc_nm)
 
 suppressWarnings(storage.mode(data_sc_nm)<-"numeric")
 print("data_sc_nm:after changing stroage mode=")
@@ -712,7 +758,9 @@ if (!is.null(input$peerGroup)){
   
   
   # data4plot <- rownames_to_column(as.data.frame(data4plot_raw), var="catgry") %>% as_tibble()
-  data4EachPeerCity_rawt <- rownames_to_column(as.data.frame(data4EachPeerCity_raw_m), var="catgry") %>%
+  data4EachPeerCity_rawt <- 
+    rownames_to_column(as.data.frame(data4EachPeerCity_raw_m),
+                       var="catgry") %>%
     as_tibble()
   
   print("data4EachPeerCity_rawt=")
@@ -745,7 +793,7 @@ if (!is.null(input$peerGroup)){
   
   summarizedPG <- tmpTibblePg %>% 
     gather(selectedYearsC, key="Year", value = "quotient") %>%
-    summarySE(measurevar = "quotient", groupvars = "Year")
+    summarySE(measurevar = "quotient", groupvars = "Year", na.rm = TRUE)
   
   
   
@@ -800,13 +848,19 @@ print("data4plot_raw=")
 print(data4plot_raw)
 #-------------------------------------------------------------------------------
 
-data4plot <- rownames_to_column(as.data.frame(data4plot_raw), var="catgry") %>% 
+data4plot <- rownames_to_column(as.data.frame(data4plot_raw), 
+                                var="catgry") %>% 
   as_tibble()
 if (ncol(data4plot) == 2){
   print("***** column is 3 *****")
   yr <- selectedYearsC[1]
   print(yr)
+  if (is.null(input$peerGroup)){
+    # do nothing
+  } else {
   data4plot <- data4plot %>% dplyr::rename(!!yr:= "V1")
+}
+  
 } else {
   print("***** column is not 2 *****")
   print(ncol(data4plot))
@@ -831,7 +885,7 @@ if (!is.null(input$peerGroup)){
   print(data4plot_pg)
   
   data4plot_pgx <- data4plot_pg %>% add_column(ci = summarizedPG[["ci"]])
-  print("end of data-prep for plot")
+  print("==================== end of data-prep for plot ==================")
   
 }
 # -----------------------------------------------------------------------------
@@ -839,12 +893,17 @@ if (!is.null(input$peerGroup)){
 # -----------------------------------------------------------------------------
 # An if-block after ggplot() seems not to accept more than 1 geom_xxx 
 # statements within it and the following incremental approach was used
-print("beginning of plot")
+
+
+print("==================== beginning of plot ==================== ")
 # baseline rendering 
 plt1 <- data4plot_sc %>%
   ggplot(aes(x=Year, y=quotient)) +
-       geom_bar(stat = 'identity', position = 'dodge', fill="#A9A9A9", 
-                color="#A9A9A9") + scale_y_continuous(name="Value")
+       geom_bar(stat = 'identity', 
+                position = 'dodge', 
+                fill="#D3D3D3", 
+                color="#A9A9A9") + 
+  scale_y_continuous(name="Value")
 
 if (input$selectAvg){
   print("extra-step for adding average")
@@ -868,10 +927,22 @@ if (input$selectAvg){
   print("no average, etc.")
   
   if (!is.null(input$peerGroup)){ 
-    plt1 <- plt1 + 
-      geom_line(data = data4EachPeerCity_rawt, 
-                aes(x = Year, y = quotient, group = catgry, color = catgry)) +
-      scale_color_discrete(name = "Legend")
+    if (length(selectedYearsC) >1) {
+      plt1 <- plt1 + 
+        geom_line(data = data4EachPeerCity_rawt, 
+                  aes(x = Year, y = quotient, 
+                      group = catgry, color = catgry)) +
+        scale_color_discrete(name = "Legend")
+      
+    } else {
+      # single-year cases
+      plt1 <- plt1 +
+        geom_point(data = data4EachPeerCity_rawt,
+                   aes(x=Year, y= quotient, 
+                       group=catgry, color=catgry)) +
+        scale_color_discrete(name="Legend")
+    }
+
   }
 }
 
