@@ -10,8 +10,13 @@ toc::[]
 
 === Dependency relationships
 
-==== upstream UI parts
+==== upstream UI parts (sinal-sending)
+* base-city selector
+* Service selector
+* year selector
+
 * city-chechbox-group 
+
 ** select|unselect-all checkbox
 
 ==== downstream UI parts (signal-receiving only)

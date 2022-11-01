@@ -93,9 +93,9 @@ selectInput(inputId='selectedVar4num',
             label = 'Select Service Metric', 
             choices = c(srv2varlbllst[["amr"]]),
             #selected = initialNumeratorValue
-            selected = c(srv2varlbllst[["amr"]][1])
+            selected = c()
             ),
-
+# srv2varlbllst[["amr"]][1]
 # checkbox to hide/show the denominator variable
 checkboxInput(inputId='selectedUseDenominator', 
               label = 'Use Denominator|Context Variable', 
@@ -170,6 +170,7 @@ server <- function(input, output) {
   observeEvent(input$selectAllpeer, {
     if (input$selectAllpeer) {
       # select all state
+      #freezeReactiveValue(input, "peerGroup")
       updateCheckboxGroupInput(inputId = "peerGroup",
         choices = citylabel[!citylabel %in% c(input$selectedCity)],
         selected = citylabel[!citylabel %in% c(input$selectedCity)])
@@ -189,6 +190,7 @@ server <- function(input, output) {
         # base city only selected
         # 
         # disable the average button because no member to calculate
+        #freezeReactiveValue(input, "peerGroup")
         updateCheckboxGroupInput(inputId = "peerGroup",
                                  choices = citylabel[!citylabel %in% c(input$selectedCity)],
                                  selected = character(0))
@@ -199,13 +201,14 @@ server <- function(input, output) {
         print("non-empty peerGroup case")
         
         if (length(input$peerGroup) == (length(citylabel)-1)){
+          #freezeReactiveValue(input, "peerGroup")
           updateCheckboxGroupInput(inputId = "peerGroup",
                                    choices = citylabel[!citylabel %in% c(input$selectedCity)],
                                    selected = character(0))
           shinyjs::disable(id="selectAvg")
           updateCheckboxInput(inputId = "selectAvg", value = FALSE)
         } else {
-        
+          #freezeReactiveValue(input, "peerGroup")
         updateCheckboxGroupInput(inputId = "peerGroup",
                                  choices = citylabel[!citylabel %in% c(input$selectedCity)],
                                  selected = c(input$peerGroup))        
@@ -246,7 +249,7 @@ server <- function(input, output) {
     if (identical(input$peerGroup, citylabel[!citylabel %in% c(input$selectedCity)])){
       print("select all cities")
       print(input$peerGroup)
-
+      #freezeReactiveValue(input, "selectAllpeer")
       updateCheckboxInput(inputId = "selectAllpeer", value = TRUE)
       shinyjs::enable(id="selectAvg")
       
@@ -262,7 +265,9 @@ server <- function(input, output) {
 
       } else {
        print("input$peerGroup is not null")
+        #freezeReactiveValue(input, "selectAllpeer")
         updateCheckboxInput(inputId = "selectAllpeer", value = FALSE)
+        #freezeReactiveValue(input, "peerGroup")
         updateCheckboxGroupInput(inputId ="peerGroup",
             choices=citylabel[!citylabel %in% c(input$selectedCity)],
              selected=c(input$peerGroup))
@@ -311,17 +316,24 @@ server <- function(input, output) {
     print("current city=")
     print(input$selectedCity)
     print("current service=")
+    
+    updatedPeerGroup <- citylabel[!citylabel %in% c(input$selectedCity)]
+    
     print(input$selectedService)
     print("current metric=")
     print(input$selectedVar4num)
-    
-    
+    print("current peerGroup=")
+    print(input$peerGroup)
+    #freezeReactiveValue(input, "peerGroup")
+    updateCheckboxGroupInput(inputId = "peerGroup",
+                             choices = updatedPeerGroup,
+                             selected = c(updatedPeerGroup))
     print("= observeEvent(input$selectedCity: end ===============")
   })
   
 # service-invoked side-effects
   # change in service => 
-  # 1. switch a list of vars(input$varset4numerator)
+  # 1. switch a list of a set of vars(varset4numerator)
   # 2. set the selected var to the first of the above new list
   # a change in input$selectedVar4num does not affect its service
   #
@@ -333,29 +345,29 @@ server <- function(input, output) {
     print("observeEvent(service): current metric=input$selectedVar4num=")
     print(input$selectedVar4num)
 
-    print("observeEvent(service): current list=input$varset4numerator=")
-    print(input$varset4numerator)
+
     
     # new settings
     # change the set of metrics according to a newly selected service
     varset4numerator <- srv2varlbllst[[input$selectedService]]
-    
     print("observeEvent(service): check new the changedvarset4numerator=")
     print(varset4numerator)
-    print("observeEvent(service): new metric=input$selectedVar4num=")
+    print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
     print(varset4numerator[1])
     
-
     
+    freezeReactiveValue(input, "selectedVar4num")
     updateSelectInput(inputId = "selectedVar4num",
                       choices=c(varset4numerator),
                       selected = c(varset4numerator[1]))
+    
+    
     print("observeEvent(service): post-update-check")
     print("observeEvent(service): updated metric=input$selectedVar4num=")
     print(input$selectedVar4num)
     
-    print("observeEvent(service): updated list=input$varset4numerator=")
-    print(input$varset4numerator)
+    print("observeEvent(service): updated list=varset4numerator=")
+    print(varset4numerator)
     
     print("= observeEvent(input$selectedService: end ===============")
       })
@@ -410,7 +422,7 @@ server <- function(input, output) {
     varset4denominator <- c(netlist, srv2varlbllst[["census"]])
     # print("varset4denominator=")
     # print(varset4denominator)
-    
+    #freezeReactiveValue(input, "selectedVar4denom")
     updateSelectInput(inputId ="selectedVar4denom", 
                       choices=c(varset4denominator) )
   })
@@ -440,16 +452,16 @@ server <- function(input, output) {
 
   output$scatterplot <- renderPlot({  
 #  output$scatterplot <- renderPlotly({
-print("= renderPlotly: START ================================================")
-    base::message("start-time=", date())
+    base::message("= renderPlotly: START ================================================")
+    base::message("output$scatterplot: start-time=",as.POSIXct(Sys.time(), tz = "EST5EDT"))
     
     # input: sanity check
     # input$selectedVar4denom was removed
-    req(input$selectedCity, 
-        input$selectedService,
-        input$selectedYears,
-        input$selectedVar4num
-)
+#     req(input$selectedCity, 
+#         input$selectedService,
+#         input$selectedYears,
+#         input$selectedVar4num
+# )
 
     
     
@@ -963,7 +975,6 @@ print("name check: denominator: input$selectedVar4denom=")
 print("current input$selectedService is=")
 print(input$selectedService)
 contextVarLabel <- v2lallinOne[[input$selectedVar4denom]]
-  # names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4denom)]
 contextVarLabel <- stringr::str_wrap(contextVarLabel, width = 80)
 print("contextVarLabel=")
 print(contextVarLabel)
@@ -976,11 +987,7 @@ if (useDenominator){
   contextVarLabel<-""
 }
 
-# old
-# titleText <- paste(c("" , 
-#                      input$selectedVar4num, " ", 
-#                      input$selectedVar4denom), collapse = "")
-# new 
+
 titleText <- paste(c("" , 
                      metricVarLabel,  contextVarLabel), collapse = "")
 print("titleText=")
@@ -1028,15 +1035,12 @@ print(paerHeight)
 # ========================================================================
 # furnish the graph with its title, etc.
 # ========================================================================
-plt1 <- plt1 +
-#  ggtitle(title=titleText, subtitle = msg_no_base_m_data) +
-  labs(
+# adding title/caption data
+plt1 <- plt1 +  labs(
     title=titleText, subtitle = msg_no_base_m_data,
-    
     caption = subtitleText)
 
-
-
+# text-tweaking 
 plt1 <- plt1 +
   theme(plot.title =   element_text(size=20, vjust = 5))+
   theme(plot.subtitle =element_text(color="red") ) +
@@ -1049,12 +1053,13 @@ plt1 <- plt1 +
   theme(axis.text.y=   element_text(size=12)) +
   theme(axis.text.x=   element_text(size=12))
 
-
-
-ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", width = paperWidth, 
+# saving the PDF version for a downloading request
+ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", 
+       width = paperWidth, 
        height = paerHeight, units = "in")
+
 base::message("= renderPlotly: END ==========================================")
-base::message("endtime=", date())
+base::message("rquest endtime=",as.POSIXct(Sys.time(), tz = "EST5EDT"))
 
 plt1
 # hide plotly's modebar
