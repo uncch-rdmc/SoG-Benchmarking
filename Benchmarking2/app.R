@@ -239,15 +239,22 @@ server <- function(input, output) {
   #       selected=citylabel[!citylabel %in% c(input$selectedCity)])
   # 
   # })
+  
 
   
-  # the following block deals with "all cities" to "some cities" transition
+  
+  
+  # behavior of comparison municipalities' checkbox group
+  # (1) this block deals with "all cities" to "some cities" transition
   # uncheck the selectAllpeer box
+  # (2) When there is still one checked box, the average-option checkbox
+  # can be updated; when there is no checked box, it seems too late to 
+  # update the average-option checkbox, i.e., cannot update its state.
   observeEvent(input$peerGroup, { 
     print("observe:updateCheckbox(Input/selectAllpeer")
     
     if (identical(input$peerGroup, citylabel[!citylabel %in% c(input$selectedCity)])){
-      print("select all cities")
+      print("state: select all cities")
       print(input$peerGroup)
       #freezeReactiveValue(input, "selectAllpeer")
       updateCheckboxInput(inputId = "selectAllpeer", value = TRUE)
@@ -256,30 +263,39 @@ server <- function(input, output) {
       
       
     } else {
-      print("not select all cities")
-      
+      print("state: not select all cities")
+      print("current peerGroup members=")
       print(input$peerGroup)
-      if (is.null(input$peerGroup)){
-          print("input$peerGroup is null")
-        # disable the average checkbox
-
+      
+      if (is.null(input$peerGroup)) {
+        print("state: input$peerGroup is null:empty")
+        # do nothing;
+        # the average checkbox must have been unchecked
+        
       } else {
-       print("input$peerGroup is not null")
+        print("state: input$peerGroup is not null:not-empty")
         #freezeReactiveValue(input, "selectAllpeer")
+        # keep the check-all checkbox unchecked
         updateCheckboxInput(inputId = "selectAllpeer", value = FALSE)
         #freezeReactiveValue(input, "peerGroup")
-        updateCheckboxGroupInput(inputId ="peerGroup",
-            choices=citylabel[!citylabel %in% c(input$selectedCity)],
-             selected=c(input$peerGroup))
-        if (length(input$peerGroup)==1){
+        
+        # update the state of the checkbox group
+        updateCheckboxGroupInput(
+          inputId = "peerGroup",
+          choices = citylabel[!citylabel %in% c(input$selectedCity)],
+          selected = c(input$peerGroup)
+        )
+        
+        # update the state for the average-option checkbox
+        if (length(input$peerGroup) == 1) {
           updateCheckboxInput(inputId = "selectAvg", value = FALSE)
-          shinyjs::disable(id="selectAvg")
+          shinyjs::disable(id = "selectAvg")
         } else {
-          shinyjs::enable(id="selectAvg")
+          shinyjs::enable(id = "selectAvg")
         }
         
         
-    }
+      }
       
       
     }
@@ -402,30 +418,124 @@ server <- function(input, output) {
   
   
   
-  # updating the set of denominator variables
+  
+  # The behavior of the numerator set
+  # This check is meaningful when the denominator option is on;
+  # when the denomintor-option is not used, there is no need to 
+  # update the list of denominator variables
+  # 
+  # When the denominator-option is on, 
+  # the selected numerator variable decides the set of denominator ones, 
+  # any change to this UI modifies the set of denominator variables
+  # and the currently selected denominator, 
+  # either the top of the updated list because the previous one has
+  # been selected as the new numerator
+  # or keeping the current one if it was not chosen as
+  # the newly selected numerator.
   observeEvent(input$selectedVar4num,{
 
-
-    print("within observe(denominator): input$selectedService=")
-    print(input$selectedService)
-    print("within observe: input$selectedVar4num=")
+    print("within observeEvent: input$selectedVar4num")
+    print("input$selectedVar4num=")
     print(input$selectedVar4num)
+    print("input$selectedUseDenominator=")
+    print(input$selectedUseDenominator)
+    if (input$selectedUseDenominator) {
+      print("input$selectedVar4denom=")
+      print(input$selectedVar4denom)
+      
+      
+      
+      # get the current list of **all** variables for the current service
+      # note: this list does not include census variables
+      rawlist <- srv2varlbllst[[input$selectedService]]
+      # print("rawlist=")
+      # print(rawlist)
+      # the list of denominators must excluded the variable
+      # that is currently selected as the numerator
+      # so exclude the numerator from the above list
+      netlist <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+      # print("netlist=")
+      # print(netlist)
+      # add the list of denominators and list of census-variables
+      varset4denominator <- c(netlist, srv2varlbllst[["census"]])
+      # print("varset4denominator=")
+      # print(varset4denominator)
+      #freezeReactiveValue(input, "selectedVar4denom")
+      # update the list of denominator (choices)
+      # and the selected one (selected)
+      
+      # denominator is on
+      if (input$selectedVar4num == input$selectedVar4denom) {
+        print("numerator is the previously selected denominator")
+        print("reset the selected one for the denominator")
+        updateSelectInput(
+          inputId = "selectedVar4denom",
+          choices = c(varset4denominator),
+          selected = c(varset4denominator[1])
+        )
+      } else {
+        print("numerator is NOT the previously selected denominator")
+        print("keep the current choice of denominator")
+        updateSelectInput(
+          inputId = "selectedVar4denom",
+          choices = c(varset4denominator),
+          selected = c(input$selectedVar4denom)
+        )
+      }
+      
+    } else {
+      # denominator is off
+      # do nothing
+      print("denominator is off; do nothing here")
+    }
+    
+  })
+  
+  
+  
+  
+  
+  # This block prepares the denominator Ui 
+  # 
+  # 
+  # 
+  observeEvent(input$selectedUseDenominator, {
+    
+    print("within observeEvent: input$selectedUseDenominator")
+    print("input$selectedService=")
+    print(input$selectedService)
+    print("input$selectedVar4num=")
+    print(input$selectedVar4num)
+    
+    # get the current list of **all** variables for the current service
+    # note: this list does not include census variables
     rawlist <- srv2varlbllst[[input$selectedService]]
     # print("rawlist=")
     # print(rawlist)
-    netlist <-rawlist[! rawlist %in% c(input$selectedVar4num) ]
+    # the list of denominators must excluded the variable
+    # that is currently selected as the numerator
+    # so exclude the numerator from the above list
+    netlist <- rawlist[!rawlist %in% c(input$selectedVar4num)]
     # print("netlist=")
     # print(netlist)
-    # old
-    #varset4denominator<-c(service2var[["Census"]], netlist)
-    # new
+    # add the list of denominators and list of census-variables
     varset4denominator <- c(netlist, srv2varlbllst[["census"]])
-    # print("varset4denominator=")
-    # print(varset4denominator)
-    #freezeReactiveValue(input, "selectedVar4denom")
-    updateSelectInput(inputId ="selectedVar4denom", 
-                      choices=c(varset4denominator) )
+    print("update the UI: selectedVar4denom ")
+    freezeReactiveValue(input, "selectedVar4denom")
+    updateSelectInput(
+      inputId = "selectedVar4denom",
+      choices = c(varset4denominator),
+      selected = c(varset4denominator[1])
+    )
+    
+    print("input$selectedVar4denom=")
+    print(input$selectedVar4denom)
   })
+  
+  
+  
+  
+  
   
   # observeEvent(input$selectAvg, {
   #   if (!input$selectAvg){
@@ -620,7 +730,7 @@ print(data_sc_nm)
 #  variables must be added
 
 if (useDenominator){ 
-  print("base m: denominator block====start====")
+  print("base m: denominator data block: ========== start ==========")
   print("current city=")
   print(input$selectedCity)
   print("current service=")
