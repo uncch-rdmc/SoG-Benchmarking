@@ -5,6 +5,9 @@ source("helpers.R")
 library(shinyjs)
 library(showtext)
 library(grDevices)
+library(jcolors)
+install.packages("ggchicklet", repos = "https://cinc.rud.is")
+library("ggchicklet")
 ################################################################################
 # ui defintion
 ################################################################################
@@ -1040,15 +1043,23 @@ plt1 <- data4plot_sc %>%
        geom_bar(stat = 'identity', 
                 position = 'dodge', 
                 fill="#D3D3D3", 
-                color="#A9A9A9") + 
-  scale_y_continuous(name="Value")
+                color="#D3D3D3") + 
+  geom_chicklet(fill="#D3D3D3") +
+  scale_y_continuous(name="Value", labels = comma)
 
 if (input$selectAvg){
   print("extra-step for adding average")
   # add an average line
   plt1 <- plt1 + 
             geom_line(data = data4plot_pg, 
-            aes(x = Year, y = quotient, group = catgry, color = catgry)) + 
+            aes(x = Year, y = quotient, group = catgry, color = catgry),
+            size=1
+            ) + 
+            geom_point(
+              data = data4plot_pg, 
+              aes(x = Year, y = quotient, group = catgry, color = catgry),
+              size=3
+            ) +
             scale_color_discrete(name = "Legend", 
             labels = c("average of \ncomparison \nmunicipalities"))
   
@@ -1069,7 +1080,12 @@ if (input$selectAvg){
       plt1 <- plt1 + 
         geom_line(data = data4EachPeerCity_rawt, 
                   aes(x = Year, y = quotient, 
-                      group = catgry, color = catgry)) +
+                      group = catgry, color = catgry),
+                  size=1) +
+        geom_point(data = data4EachPeerCity_rawt, 
+                   aes(x = Year, y = quotient, 
+                       group = catgry, color = catgry),
+                   size=3) +
         scale_color_discrete(name = "Legend")
       
     } else {
@@ -1077,7 +1093,8 @@ if (input$selectAvg){
       plt1 <- plt1 +
         geom_point(data = data4EachPeerCity_rawt,
                    aes(x=Year, y= quotient, 
-                       group=catgry, color=catgry)) +
+                       group=catgry, color=catgry),
+                   size=3) +
         scale_color_discrete(name="Legend")
     }
 
@@ -1168,17 +1185,19 @@ plt1 <- plt1 +  labs(
 
 # text-tweaking 
 plt1 <- plt1 +
+  scale_color_jcolors(palette = "pal8") +
 #  theme(text = element_text(family = "balow"))+
-  theme(plot.title =   element_text(size=20, vjust = 5))+
-  theme(plot.subtitle =element_text(color="red") ) +
+  theme_bw() +
+  theme(plot.title =   element_text(family = "balow", size=20, vjust = 5))+
+  theme(plot.subtitle =element_text(family = "balow", color="red") ) +
   theme(plot.margin =  margin(t=40, l=20)) +
-  theme(plot.caption = element_text(size = 12, hjust = 0)) +
-  theme(legend.title = element_text(size=14)) +
-  theme(legend.text =  element_text(size=12)) +
+  theme(plot.caption = element_text(family = "balow", size = 12, hjust = 0)) +
+  theme(legend.title = element_text(family = "balow", size=14)) +
+  theme(legend.text =  element_text(family = "balow", size=12)) +
   theme(axis.title.y = element_blank()  ) +
-  theme(axis.title.x=  element_text(size=14)) +
-  theme(axis.text.y=   element_text(size=12)) +
-  theme(axis.text.x=   element_text(size=12))
+  theme(axis.title.x=  element_text(family = "balow", size=14)) +
+  theme(axis.text.y=   element_text(family = "balow", size=12)) +
+  theme(axis.text.x=   element_text(family = "balow", size=12))
 
 # saving the PDF version for a downloading request
 
