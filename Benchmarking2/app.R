@@ -3,7 +3,8 @@ library(shinythemes)
 library(plotly)
 source("helpers.R")
 library(shinyjs)
-
+library(showtext)
+library(grDevices)
 ################################################################################
 # ui defintion
 ################################################################################
@@ -706,9 +707,12 @@ suppressWarnings(storage.mode(data_sc_nm)<-"numeric")
 print("data_sc_nm:after changing stroage mode=")
 print(data_sc_nm)
 print(str(data_sc_nm))
-
+numerator_is_all_na <- FALSE
 if (all(is.na(data_sc_nm))){
-  print("all NA case")
+  message("numerator: all NA case")
+  numerator_is_all_na<-TRUE
+  msg_no_base_m_data <-  paste("\nData for the selected base municipality (", 
+                               input$selectedCity,") is not available for these years.")
 } else {
   data_sc_nm <- 10^as.integer(input$selectMultiplier) *  data_sc_nm
 }
@@ -752,6 +756,15 @@ print(data_sc_dm)
 dimnames(data_sc_dm)[[1]] <- input$selectedCity
 print("data_sc_dm=2")
 print(data_sc_dm)
+
+
+if (all(is.na(data_sc_dm))){
+  message("base city: denominator: all NA case")
+  numerator_is_all_na<-TRUE
+  msg_no_base_m_data <-  paste("\nDenominator data for the selected base municipality (", 
+                               input$selectedCity,") is not available for these years.")
+}
+
 
 }
 ## ----------------------------------------------------------------------------
@@ -1018,6 +1031,9 @@ if (!is.null(input$peerGroup)){
 
 
 print("==================== beginning of plot ==================== ")
+
+sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")
+showtext_auto()
 # baseline rendering 
 plt1 <- data4plot_sc %>%
   ggplot(aes(x=Year, y=quotient)) +
@@ -1152,6 +1168,7 @@ plt1 <- plt1 +  labs(
 
 # text-tweaking 
 plt1 <- plt1 +
+#  theme(text = element_text(family = "balow"))+
   theme(plot.title =   element_text(size=20, vjust = 5))+
   theme(plot.subtitle =element_text(color="red") ) +
   theme(plot.margin =  margin(t=40, l=20)) +
@@ -1164,7 +1181,8 @@ plt1 <- plt1 +
   theme(axis.text.x=   element_text(size=12))
 
 # saving the PDF version for a downloading request
-ggsave(filename = "graph.pdf",plot =  plt1, device = "pdf", 
+
+ggsave(filename = "graph.pdf",plot =  plt1, device = cairo_pdf, 
        width = paperWidth, 
        height = paerHeight, units = "in")
 
