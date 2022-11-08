@@ -17,12 +17,12 @@ library(stringr)
 # raw dataset
 # bd_data <-read_rds(file="df_combined_uc.rds")
 # completed dataset
-bd_data <-read_rds(file="bd_data_completed4.rds")
+bd_data <-read_rds(file="bd_data_completed5.rds")
 
 # label data files
 all_service_abbrev_to_full<-read_rds(file = "all_service_abbrev_to_full.rds")
 
-all_varNameToLabel<-read_rds(file = "all_varNameToLabel.rds")
+all_varNameToLabel<-read_rds(file = "all_varNameToLabel5.rds")
 
 
 
@@ -43,11 +43,11 @@ y_list <- bd_data %>% distinct(Year) %>% pull() %>% as.character()
 
 # all M names vector
 citylabel <-c("Apex", "Chapel Hill", "Charlotte", "Concord", "Goldsboro", 
-              "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
+        "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
 
 # Apex's peergroup vector
 rvllabel <- c("Chapel Hill",   "Charlotte", "Concord", "Goldsboro", 
-              "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
+        "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
 
 rvllabellist <- setNames(as.list(rvllabel), rvllabel)
 

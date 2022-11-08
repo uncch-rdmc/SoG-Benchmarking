@@ -6,8 +6,8 @@ library(shinyjs)
 library(showtext)
 library(grDevices)
 library(jcolors)
-install.packages("ggchicklet", repos = "https://cinc.rud.is")
-library("ggchicklet")
+#install.packages("ggchicklet", repos = "https://cinc.rud.is")
+#library("ggchicklet")
 ################################################################################
 # ui defintion
 ################################################################################
@@ -656,8 +656,10 @@ print(input$selectedCity)
 
 msg_no_base_m_data <-"" 
 if (is.na(match(input$selectedCity, valueAvailableCities))){
-  msg_no_base_m_data <-  paste("\nData for the selected base municipality (", 
-input$selectedCity,") is not available for these years.")
+  msg_no_base_m_data <-  paste(
+    "\nData for the selected base municipality (", 
+input$selectedCity,
+") is not available for these years.")
 }
 
 # validate(
@@ -714,8 +716,9 @@ numerator_is_all_na <- FALSE
 if (all(is.na(data_sc_nm))){
   message("numerator: all NA case")
   numerator_is_all_na<-TRUE
-  msg_no_base_m_data <-  paste("\nData for the selected base municipality (", 
-                               input$selectedCity,") is not available for these years.")
+  msg_no_base_m_data <-  paste(
+    "\nData for the selected base municipality (", 
+    input$selectedCity,") is not available for these years.")
 } else {
   data_sc_nm <- 10^as.integer(input$selectMultiplier) *  data_sc_nm
 }
@@ -764,8 +767,9 @@ print(data_sc_dm)
 if (all(is.na(data_sc_dm))){
   message("base city: denominator: all NA case")
   numerator_is_all_na<-TRUE
-  msg_no_base_m_data <-  paste("\nDenominator data for the selected base municipality (", 
-                               input$selectedCity,") is not available for these years.")
+  msg_no_base_m_data <-  paste(
+    "\nDenominator data for the selected base municipality (", 
+    input$selectedCity,") is not available for these years.")
 }
 
 
@@ -1044,7 +1048,7 @@ plt1 <- data4plot_sc %>%
                 position = 'dodge', 
                 fill="#D3D3D3", 
                 color="#D3D3D3") + 
-  geom_chicklet(fill="#D3D3D3") +
+#  geom_chicklet(fill="#D3D3D3") +
   scale_y_continuous(name="Value", labels = comma)
 
 if (input$selectAvg){
