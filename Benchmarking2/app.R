@@ -1184,7 +1184,9 @@ print(paerHeight)
 # ========================================================================
 # adding title/caption data
 plt1 <- plt1 +  labs(
-    title=titleText, subtitle = msg_no_base_m_data,
+    title=titleText, 
+    subtitle = msg_no_base_m_data,
+    color="Legend",
     caption = subtitleText)
 
 # text-tweaking 
@@ -1192,11 +1194,11 @@ plt1 <- plt1 +
   scale_color_jcolors(palette = "pal8") +
 #  theme(text = element_text(family = "balow"))+
   theme_bw() +
-  theme(plot.title =   element_text(family = "balow", size=20, vjust = 5))+
+  theme(plot.title =   element_text(family = "balow", size=22, vjust = 5))+
   theme(plot.subtitle =element_text(family = "balow", color="red") ) +
   theme(plot.margin =  margin(t=40, l=20)) +
   theme(plot.caption = element_text(family = "balow", size = 12, hjust = 0)) +
-  theme(legend.title = element_text(family = "balow", size=14)) +
+  theme(legend.title = element_text(family = "balow", size=16)) +
   theme(legend.text =  element_text(family = "balow", size=12)) +
   theme(axis.title.y = element_blank()  ) +
   theme(axis.title.x=  element_text(family = "balow", size=14)) +
