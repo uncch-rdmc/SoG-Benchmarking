@@ -20,6 +20,8 @@ ui <- fluidPage(
     color: red;
     font-size: 16px
     }
+    #goButton{
+    margin-bottom: 20px;}
     "))
   ),
   
@@ -36,9 +38,11 @@ ui <- fluidPage(
       tabsetPanel(
         type = "tabs",
         tabPanel("Home",
-                 
-                 
-                 plotOutput(outputId= "scatterplot" )
+                 br(),
+                 htmlOutput(outputId="initialMessage",
+                          container = h3),
+
+                 plotOutput(outputId= "scatterplot" ),
 
                  ),
 
@@ -90,7 +94,7 @@ checkboxGroupInput(inputId="selectedYears",
                    label = "Years", 
                    choices = y_list,
                    selected = y_list),
-
+actionButton("goButton", "Submit"),
 # select a numerator(metric) variable:pulldown menu
 
 selectInput(inputId='selectedVar4num', 
@@ -563,7 +567,21 @@ server <- function(input, output) {
   })
   
 ################################################################################
-
+  output$initialMessage <- renderText(
+    {
+      if (    input$goButton == 0){
+        HTML(paste(
+          "Welcome to Benchmarking 2.0.",
+            paste("Please click the Submit button ",
+          "to start a new benchmarking session.", sep = "<br />"), sep = "<br /><br />"))
+      } else {
+        paste(c(""))
+      }
+      
+    }
+    
+  )
+  tempPDFfile <-tempfile()
   output$scatterplot <- renderPlot({  
 #  output$scatterplot <- renderPlotly({
     base::message("= renderPlotly: START ================================================")
@@ -576,11 +594,12 @@ server <- function(input, output) {
 #         input$selectedYears,
 #         input$selectedVar4num
 # )
+    checkedM <- isolate(input$peerGroup)
+    if (    input$goButton == 0){
+      return()
+    }
 
-    
-    
-    
-    
+
     
     
 # plot for tab 1: start ========================================================
@@ -599,7 +618,7 @@ print("selected city=")
 print(input$selectedCity)
     
 print("peerGroup=")
-print(input$peerGroup)
+print(checkedM)
     
 print("selected Service=")
 print(input$selectedService)
@@ -785,7 +804,7 @@ if (all(is.na(data_sc_dm))){
 # base-line data for the numerator
 test_i_selectedService <- input$selectedService
 test_i_selectedVar4num <- input$selectedVar4num
-test_i_peerGroup       <- input$peerGroup
+test_i_peerGroup       <- checkedM
 # tmp_pg_nm <- bd_data %>% 
 #   filter(Service == input$selectedService)   %>%
 #   filter(Variable==input$selectedVar4num)   %>%
@@ -797,7 +816,7 @@ print(test_i_selectedVar4num)
 print("test_i_peerGroup=")
 print(test_i_peerGroup)
 
-if (!is.null(input$peerGroup)){ 
+if (!is.null(checkedM)){ 
   
   # tmp_pg_nm <- bd_data %>% 
   #   filter(Service == test_i_selectedService)   %>%
@@ -808,12 +827,12 @@ if (!is.null(input$peerGroup)){
   # print(tmp_pg_nm)
 }
 
-if (!is.null(input$peerGroup)){ 
+if (!is.null(checkedM)){ 
   
   data_pg_nm <- bd_data %>% 
     filter(Service == input$selectedService)   %>%
     filter(Variable==input$selectedVar4num)   %>%
-    filter(Municipality %in% input$peerGroup) %>% 
+    filter(Municipality %in% checkedM) %>% 
     arrange(Municipality, Year) %>%
     spread(key=Year, value=Value)       %>%
     select(selectedYearsC) %>% 
@@ -845,7 +864,7 @@ if (!is.null(input$peerGroup)){
   # print("updatedPeerGroup=")
   # print(updatedPeerGroup)
   
-  rownames(data_pg_nm) <- input$peerGroup
+  rownames(data_pg_nm) <- checkedM
 
   # print("data_pg_nm(a)=")
   # print(data_pg_nm)
@@ -855,18 +874,18 @@ if (!is.null(input$peerGroup)){
 ## ----------------------------------------------------------------------------
 # base-line data for the denominator
 #  variables must be added
-if (!is.null(input$peerGroup)){ 
+if (!is.null(checkedM)){ 
   if (useDenominator){
     
     data_pg_dm <- bd_data %>% 
       filter(Service == input$selectedService | Service =="census")   %>%
       filter(Variable==input$selectedVar4denom) %>%
       #filter(Municipality %in% updatedPeerGroup) %>% 
-      filter(Municipality %in% input$peerGroup) %>% 
+      filter(Municipality %in% checkedM) %>% 
       spread(key=Year, value=Value)       %>%
       select(selectedYearsC) %>% 
       as.matrix()
-    rownames(data_pg_dm) <- input$peerGroup
+    rownames(data_pg_dm) <- checkedM
     # rownames(data_pg_dm) <- updatedPeerGroup
     print("data_pg_dm=")
     print(data_pg_dm)
@@ -874,7 +893,7 @@ if (!is.null(input$peerGroup)){
 }
 # ------------------------------------------------------------------------------
 # working on peer group
-if (!is.null(input$peerGroup)){ 
+if (!is.null(checkedM)){ 
   print("selectedYears=")
   print(selectedYearsC)
   print("selectedYears:length=")
@@ -947,7 +966,7 @@ if (!is.null(input$peerGroup)){
 
 
 tmpMatrixScQ <- NULL
-if (!is.null(input$peerGroup)){ 
+if (!is.null(checkedM)){ 
   if (useDenominator){
     tmpMatrixScQ <- data_sc_nm / data_sc_dm
   } else{
@@ -971,7 +990,7 @@ if (!is.null(input$peerGroup)){
 
 
 # last step: selected City 
-if (!is.null(input$peerGroup)){ 
+if (!is.null(checkedM)){ 
   data4plot_raw <- rbind(t(tmpMatrixScQ)[, 1], t(summarizedPG[, 3]))
   rownames(data4plot_raw ) <- c(input$selectedCity, "Average")
 } else {
@@ -997,7 +1016,7 @@ if (ncol(data4plot) == 2){
   print("***** column is 3 *****")
   yr <- selectedYearsC[1]
   print(yr)
-  if (is.null(input$peerGroup)){
+  if (is.null(checkedM)){
     # do nothing
   } else {
   data4plot <- data4plot %>% dplyr::rename(!!yr:= "V1")
@@ -1019,7 +1038,7 @@ data4plot_sc <- data4plot %>%
 print("data4plot_sc=")
 print(data4plot_sc)
 
-if (!is.null(input$peerGroup)){ 
+if (!is.null(checkedM)){ 
   data4plot_pg <- data4plot %>% 
     gather(selectedYearsC, key = "Year", value = "quotient") %>%
     filter(catgry != input$selectedCity)
@@ -1079,7 +1098,7 @@ if (input$selectAvg){
   # tibble to be used
   print("no average, etc.")
   
-  if (!is.null(input$peerGroup)){ 
+  if (!is.null(checkedM)){ 
     if (length(selectedYearsC) >1) {
       plt1 <- plt1 + 
         geom_line(data = data4EachPeerCity_rawt, 
@@ -1147,8 +1166,8 @@ multiplierValue <- as.character( 10^as.integer(input$selectMultiplier) )
 
 
 peerGroupList <-""
-if (!is.null(input$peerGroup)) {
-  peerGroupList <- paste(input$peerGroup,collapse=", ")
+if (!is.null(checkedM)) {
+  peerGroupList <- paste(checkedM,collapse=", ")
   # peerGroupList <- paste(updatedPeerGroup, collapse = ", ")
   peerGroupList <- stringr::str_wrap(peerGroupList, width = 80)
 }
@@ -1189,17 +1208,19 @@ plt1 <- plt1 +  labs(
     color="Legend",
     caption = subtitleText)
 
+cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 # text-tweaking 
 plt1 <- plt1 +
   scale_color_jcolors(palette = "pal8") +
 #  theme(text = element_text(family = "balow"))+
   theme_bw() +
   theme(plot.title =   element_text(family = "balow", size=22, vjust = 5))+
-  theme(plot.subtitle =element_text(family = "balow", color="red") ) +
+  theme(plot.subtitle =element_text(family = "balow", size=20,  color="red") ) +
   theme(plot.margin =  margin(t=40, l=20)) +
   theme(plot.caption = element_text(family = "balow", size = 12, hjust = 0)) +
-  theme(legend.title = element_text(family = "balow", size=16)) +
-  theme(legend.text =  element_text(family = "balow", size=12)) +
+  theme(legend.title = element_text(family = "balow", size=18)) +
+  theme(legend.text =  element_text(family = "balow", size=14)) +
   theme(axis.title.y = element_blank()  ) +
   theme(axis.title.x=  element_text(family = "balow", size=14)) +
   theme(axis.text.y=   element_text(family = "balow", size=12)) +
@@ -1207,7 +1228,7 @@ plt1 <- plt1 +
 
 # saving the PDF version for a downloading request
 
-ggsave(filename = "graph.pdf",plot =  plt1, device = cairo_pdf, 
+ggsave(filename = tempPDFfile, plot =  plt1, device = cairo_pdf, 
        width = paperWidth, 
        height = paerHeight, units = "in")
 
@@ -1227,7 +1248,7 @@ output$downloadGraph <- downloadHandler(
     "graph.pdf"
   }, 
   content = function(file) {
-    file.copy('graph.pdf', file, overwrite = TRUE)
+    file.copy(tempPDFfile, file, overwrite = TRUE)
   }
 )
 # ------------------------------------------------------------------------------
