@@ -1,0 +1,35 @@
+:toc: macro
+:toclevels: 3
+:icons: font 
+
+= Dashboard 2.0: Functioanl specifications
+
+toc::[]
+
+== Relationships among the UI parts
+
+=== Dependency relationships
+
+==== upstream UI parts (sinal-sending)
+* base-city selector
+* Service selector
+* year selector
+
+* city-chechbox-group 
+
+** select|unselect-all checkbox
+
+==== downstream UI parts (signal-receiving only)
+
+===== Select-all checkbox
+* States
+** Select-All
+
+** Unselect All
+This state still allows a user to add an average line
+
+
+
+
+
+==== Both-way

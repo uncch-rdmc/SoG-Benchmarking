@@ -1,0 +1,38 @@
+= To-Do items listed during the meeting of 2022-10-31 Meeting
+
+:toc: macro
+:toclevels: 3
+:icons: font 
+
+toc::[]
+
+== requests
+* [ ] The line for average disappears when even one of the comparison municipalities has missing values.
+** [ ] run the following combination with average selected "Base Municipality: Apex; Service: Residential Refuse Collection; Comparison Municipalities: Chapel Hill,Charlotte,Concord,Goldsboro,Greensboro,Hickory,Raleigh,Wilson,Winston−Salem"
+** [ ] "Base Municipality: Apex; Service: Residential Refuse Collection Comparison; Municipalities: Chapel Hill, Charlotte, Concord, Goldsboro, Greensboro, Hickory, Raleigh, Wilson, Winston−Salem"
+
+* [ ] Grievances received / Approved FTEs in city government - All are unselected when Greensboro is unselected.
+* [ ] Average disabled for "City government FTE hours available / Approved city government FTE hours" when "Base Municipality: Goldsboro Service: Central Human Resources Comparison Municipalities: Hickory, Raleigh, Wilson, Winston−Salem Multiplier: 100"
+* [ ] When the checkbox group is the select-all state, after a checkbox is unchecked, this action becomes the same as the unselect-all one 
+* [ ] The average button's disable action is connected to the above unselected-all action
+* [ ] When a change in the numerator resets the existing selection of the denominator to the first item
+* [ ] A change in the Service show messages in red on the screen [server-only]
+
+* [ ] less-than-3-year cases returns errors
+* new features
+* [ ] Data table
+* [ ] link-back URL
+* [ ] Logo/copyright notice
+
+==  Template
+
+* [ ] 
+* [ ] 
+* [ ] 
+* [ ] 
+* [ ] 
+* [ ] 
+* [ ] 
+* [ ] 
+* [ ] 
+* [ ] 

@@ -18,7 +18,7 @@ toc::[]
 2. [ ] We would also like to integrate an option to display only the raw data, perhaps via a checkbox, which when selected would make the dropdown for the denominator options disappear.
 // This implies that rendering would be a two-step process 
 
-3. [ ] Lastly, we also discussed integrating the dashboard onto the website, and we will wait for your coworker’s input on the licensing for that.
+3. [ ] Lastly, we also discussed integrating the dashboard onto the website, and we will wait for your coworker's input on the licensing for that.
  
 
 Thank you so much for all your work on the project!
