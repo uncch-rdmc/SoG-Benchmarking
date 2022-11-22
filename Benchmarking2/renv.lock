@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.2.1",
+    "Version": "4.2.2",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -693,17 +693,6 @@
       "Repository": "CRAN",
       "Hash": "7ab57a6de7f48a8dc84910d1eca42883",
       "Requirements": []
-    },
-    "jcolors": {
-      "Package": "jcolors",
-      "Version": "0.0.4",
-      "Source": "Repository",
-      "Repository": "CRAN",
-      "Hash": "79a9bb430441163287fa0ee389cfdca3",
-      "Requirements": [
-        "ggplot2",
-        "scales"
-      ]
     },
     "jquerylib": {
       "Package": "jquerylib",

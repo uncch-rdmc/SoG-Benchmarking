@@ -13,6 +13,8 @@ library(scales)
 library(rjson)
 library(Rmisc)
 library(stringr)
+library(RColorBrewer)
+library(showtext)
 #bd_data<-read_rds(file="./Benchmarking_2_0_Data_Long_Form.rds")
 # raw dataset
 # bd_data <-read_rds(file="df_combined_uc.rds")
@@ -132,3 +134,31 @@ for (srv in srvclngToShrtRefLst){
   valueLst<-setNames(as.list(value_vec), name_vec)
   srv2varlbllst[[srv]]  <- valueLst
 }
+
+###############################################################################
+# Graph-rendering settings 
+# #############################################################################
+# custom palettes
+# This is a static approach, i.e., all cities are used
+# For more realistic settings, the palettes must be dynamically subset
+pairedPalette <- brewer.pal(n=length(citylabel), name="Paired")
+print("pairedPalette=")
+print(pairedPalette)
+lvlcl <- levels(factor(citylabel, ordered = T))
+print("levelsCityLabel=")
+print(lvlcl)
+names(pairedPalette) <- lvlcl
+print("pairedPalette=")
+print(pairedPalette)
+shapeNoList <- seq(1:length(citylabel))
+names(shapeNoList)  <- lvlcl
+
+fixed_f_scale <- scale_fill_manual(name="Legend", values=pairedPalette)
+fixed_c_scale <- scale_color_manual(name="Legend", values = pairedPalette)
+fixed_s_scale <- scale_shape_manual(name="Legend", values = shapeNoList)
+
+
+###############################################################################
+# custom font setting
+###############################################################################
+sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")

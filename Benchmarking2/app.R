@@ -3,16 +3,17 @@ library(shinythemes)
 library(plotly)
 source("helpers.R")
 library(shinyjs)
-library(showtext)
+
 library(grDevices)
-library(jcolors)
-library(RColorBrewer)
+# library(jcolors)
+
 #install.packages("ggchicklet", repos = "https://cinc.rud.is")
 #library("ggchicklet")
 ################################################################################
 # ui defintion
 ################################################################################
 ui <- fluidPage(
+
 #  shinythemes::themeSelector(),
   shinyjs::useShinyjs(),
   tags$head(
@@ -33,7 +34,9 @@ ui <- fluidPage(
   
   sidebarLayout(
     
-    
+###############################################################################
+# main panel 
+###############################################################################
     mainPanel(
       
       tabsetPanel(
@@ -64,7 +67,9 @@ ui <- fluidPage(
 
     ),
     
-    
+###############################################################################
+# side panel
+###############################################################################
 sidebarPanel(
 # select a base city
 selectInput(inputId='selectedCity', 
@@ -374,7 +379,7 @@ server <- function(input, output) {
     
     # new settings
     # change the set of metrics according to a newly selected service
-    varset4numerator <- srv2varlbllst[[input$selectedService]]
+    varset4numerator <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
     print("observeEvent(service): check new the changedvarset4numerator=")
     print(varset4numerator)
     print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
@@ -455,23 +460,30 @@ server <- function(input, output) {
       
       
       # get the current list of **all** variables for the current service
-      # note: this list does not include census variables
-      rawlist <- srv2varlbllst[[input$selectedService]]
+      # note: this list now includes census variables
+      rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
       # print("rawlist=")
       # print(rawlist)
       # the list of denominators must excluded the variable
       # that is currently selected as the numerator
       # so exclude the numerator from the above list
-      netlist <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+      # netlist <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+      varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
       # print("netlist=")
       # print(netlist)
       # add the list of denominators and list of census-variables
-      varset4denominator <- c(netlist, srv2varlbllst[["census"]])
+      # varset4denominator <- c(netlist, srv2varlbllst[["census"]])
       # print("varset4denominator=")
       # print(varset4denominator)
       #freezeReactiveValue(input, "selectedVar4denom")
       # update the list of denominator (choices)
       # and the selected one (selected)
+      
+      
+      
+      
+      
+      
       
       # denominator is on
       if (input$selectedVar4num == input$selectedVar4denom) {
@@ -517,18 +529,19 @@ server <- function(input, output) {
     print(input$selectedVar4num)
     
     # get the current list of **all** variables for the current service
-    # note: this list does not include census variables
-    rawlist <- srv2varlbllst[[input$selectedService]]
+    # note: this list now includes census variables
+    rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
     # print("rawlist=")
     # print(rawlist)
     # the list of denominators must excluded the variable
     # that is currently selected as the numerator
     # so exclude the numerator from the above list
-    netlist <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+    #netlist <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+    varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
     # print("netlist=")
     # print(netlist)
     # add the list of denominators and list of census-variables
-    varset4denominator <- c(netlist, srv2varlbllst[["census"]])
+    # varset4denominator <- c(netlist, srv2varlbllst[["census"]])
     print("update the UI: selectedVar4denom ")
     freezeReactiveValue(input, "selectedVar4denom")
     updateSelectInput(
@@ -582,9 +595,15 @@ server <- function(input, output) {
     }
     
   )
+  
+###############################################################################
+# plot
+###############################################################################
+# for aPDF generation
   tempPDFfile <-tempfile()
+  
   output$scatterplot <- renderPlot({  
-#  output$scatterplot <- renderPlotly({
+
     base::message("= renderPlotly: START ================================================")
     base::message("output$scatterplot: start-time=",as.POSIXct(Sys.time(), tz = "EST5EDT"))
     
@@ -595,11 +614,14 @@ server <- function(input, output) {
 #         input$selectedYears,
 #         input$selectedVar4num
 # )
+# 
+# 
+# temporarily masked
     checkedM <- isolate(input$peerGroup)
-    if (    input$goButton == 0){
+    if (input$goButton == 0){
       return()
     }
-
+    #checkedM <- input$peerGroup
 
     
     
@@ -664,7 +686,7 @@ print("selectedYearsC=")
 print(selectedYearsC)
 
 valueAvailableCities <- bd_data %>% 
-  filter(Service == input$selectedService)   %>%
+  filter(Service == input$selectedService | Service =="census")   %>%
   filter(Variable==input$selectedVar4num)    %>%
   filter(!is.na(Value)) %>%
   distinct(Municipality) %>%
@@ -693,7 +715,7 @@ input$selectedCity,
 
 
 tmp_data_sc_nm <- bd_data %>%
-  filter(Service == input$selectedService)   %>%
+  filter(Service == input$selectedService | Service =="census")   %>%
   filter(Variable==input$selectedVar4num)    %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)  %>%
@@ -709,7 +731,7 @@ print(tmp_data_sc_nm)
 # all-NA tibble seems to be rejected
 # the following is a roundabout solution
 data_sc_nm <- bd_data %>% 
-  filter(Service == input$selectedService)   %>%
+  filter(Service == input$selectedService | Service =="census")   %>%
   filter(Variable==input$selectedVar4num)    %>%
   filter(Municipality == input$selectedCity) %>%
   spread(key=Year, value=Value)        %>%
@@ -831,7 +853,7 @@ if (!is.null(checkedM)){
 if (!is.null(checkedM)){ 
   
   data_pg_nm <- bd_data %>% 
-    filter(Service == input$selectedService)   %>%
+    filter(Service == input$selectedService | Service =="census")   %>%
     filter(Variable==input$selectedVar4num)   %>%
     filter(Municipality %in% checkedM) %>% 
     arrange(Municipality, Year) %>%
@@ -1058,28 +1080,21 @@ if (!is.null(checkedM)){
 
 
 print("==================== beginning of plot ==================== ")
-pairedPalette <- brewer.pal(n=length(citylabel), name="Paired")
-print("pairedPalette=")
-print(pairedPalette)
-lvlcl <- levels(factor(citylabel, ordered = T))
-print("levelsCityLabel=")
-print(lvlcl)
-names(pairedPalette) <- lvlcl
-print("pairedPalette=")
-print(pairedPalette)
-fixed_f_scale <- scale_fill_manual(name="catgry", values=pairedPalette)
-fixed_c_scale <- scale_color_manual(values = pairedPalette)
-sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")
+
+
 showtext_auto()
+# update the palette according to the current checkedM
+fixed_f_scale <- scale_fill_manual(name="Legend", values = pairedPalette[checkedM])
+fixed_c_scale <- scale_color_manual(name="Legend", values = pairedPalette[checkedM])
+fixed_s_scale <- scale_shape_manual(name="Legend", values = shapeNoList[checkedM])
+
 # baseline rendering 
 plt1 <- data4plot_sc %>%
-  ggplot(aes(x=Year, y=quotient)) +
-       geom_bar(stat = 'identity', 
-                position = 'dodge', 
-                fill="#D3D3D3", 
-                color="#D3D3D3") + 
-#  geom_chicklet(fill="#D3D3D3") +
-  scale_y_continuous(name="Value", labels = comma)
+  ggplot() +
+       geom_col(aes(x=Year, y=quotient, fill=catgry)) + 
+  scale_y_continuous(name="Value", labels = comma) +
+  scale_fill_manual(name="Base", values=c("#B3B3B3")) 
+
 
 if (input$selectAvg){
   print("extra-step for adding average")
@@ -1093,9 +1108,7 @@ if (input$selectAvg){
               data = data4plot_pg, 
               aes(x = Year, y = quotient, group = catgry, color = catgry),
               size=3
-            ) +
-            scale_color_discrete(name = "Legend", 
-            labels = c("average of \ncomparison \nmunicipalities"))
+            ) 
   
   if (input$selectCI) {
     # add CI-bands
@@ -1103,6 +1116,10 @@ if (input$selectAvg){
       aes(ymin = quotient - ci, ymax = quotient + ci), 
       width = .1, color = "#696969", position = position_dodge(0.1)) 
   }
+  
+  # plt1 <- plt1 + 
+  #   scale_color_discrete(name = "Legend", 
+  #   labels = c("average of \ncomparison \nmunicipalities"))
   
 } else {
   # each municipality's line is added 
@@ -1125,19 +1142,17 @@ if (input$selectAvg){
                       group = catgry, color = catgry),
                   size=1) +
         geom_point(data = data4EachPeerCity_rawt, 
-                   aes(x = Year, y = quotient, 
-                       group = catgry, color = catgry),
-                   size=3) +
-        scale_color_discrete(name = "Legend")
+                   aes(x = Year, y = quotient, shape=catgry,
+                       color = catgry),
+                   size=3) 
       
     } else {
       # single-year cases
       plt1 <- plt1 +
         geom_point(data = data4EachPeerCity_rawt,
-                   aes(x=Year, y= quotient, 
-                       group=catgry, color=catgry),
-                   size=3) +
-        scale_color_discrete(name="Legend")
+                   aes(x=Year, y= quotient, shape=catgry,
+                       color=catgry),
+                   size=3)
     }
 
   }
@@ -1195,7 +1210,8 @@ if (!is.null(checkedM)) {
 subtitleText <-paste(c("Base Municipality: ",input$selectedCity,
                       "\nService: ",  serviceNameFull,
                       "\nComparison Municipalities: ", peerGroupList,
-                      "\nMultiplier: ", multiplierValue
+                      "\nMultiplier: ", multiplierValue,
+                      "\n\nData upated on: 2022-11-22"
                       ), 
                       collapse = "")
 print("subtitleText=")
@@ -1220,34 +1236,84 @@ print(paerHeight)
 # ========================================================================
 # furnish the graph with its title, etc.
 # ========================================================================
+# 
 # adding title/caption data
-
+if (input$selectAvg){
+  
+  plt1 <- plt1 +  labs(
+    title=titleText, 
+    subtitle = msg_no_base_m_data,
+    caption = subtitleText
+    )
+  
+  
+} else {
+  # no average line
 plt1 <- plt1 +  labs(
     title=titleText, 
     subtitle = msg_no_base_m_data,
-    color="Legend",
     caption = subtitleText)
+}
 
-cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
-          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-# text-tweaking 
+# text-tweaking, etc.
+if (input$selectAvg){
+  
+  plt1 <- plt1 +
+    fixed_c_scale+
+  scale_color_discrete(name = "Legend", 
+  labels = c("average of \ncomparison \nmunicipalities")) +
+  
+  
+  
+  # fixed_c_scale+
+  #   fixed_s_scale+
+    theme_bw() +
+    theme(plot.title =   element_text(family = "barlow", size=22, vjust = 5),
+          plot.subtitle = element_text(family = "barlow",
+                                       size = 20,
+                                       color = "red"),
+          plot.margin =  margin(t = 40, l = 20),
+          plot.caption = element_text(family = "barlow",
+                                      size = 12,
+                                      hjust = 0),
+          legend.title = element_text(family = "barlow", size = 18),
+          legend.text =  element_text(family = "barlow", size = 14),
+          axis.title.y = element_blank(),
+          axis.title.x =  element_text(family = "barlow", size = 14),
+          axis.text.y =   element_text(family = "barlow", size = 12),
+          axis.text.x =   element_text(family = "barlow", size = 12),
+          plot.tag = element_text(hjust = 0.5,
+                                  vjust = 0.5,
+                                  size = 13),
+          plot.tag.position = c(0.9, 0.9))  +
+    guides(fill = guide_legend(nrow = 2, ncol = 1))
+  
+} else {
 plt1 <- plt1 +
   fixed_c_scale+
-  # scale_color_brewer(palette = "Paired") +
-#  scale_fill_brewer(palette = "Paired")
-# scale_color_jcolors(palette = "pal8") +
-#  theme(text = element_text(family = "balow"))+
+  fixed_s_scale+
   theme_bw() +
-  theme(plot.title =   element_text(family = "barlow", size=22, vjust = 5))+
-  theme(plot.subtitle =element_text(family = "barlow", size=20,  color="red") ) +
-  theme(plot.margin =  margin(t=40, l=20)) +
-  theme(plot.caption = element_text(family = "barlow", size = 12, hjust = 0)) +
-  theme(legend.title = element_text(family = "barlow", size=18)) +
-  theme(legend.text =  element_text(family = "barlow", size=14)) +
-  theme(axis.title.y = element_blank()  ) +
-  theme(axis.title.x=  element_text(family = "barlow", size=14)) +
-  theme(axis.text.y=   element_text(family = "barlow", size=12)) +
-  theme(axis.text.x=   element_text(family = "barlow", size=12))
+  theme(plot.title =   element_text(family = "barlow", size=22, vjust = 5),
+        plot.subtitle = element_text(family = "barlow",
+                                     size = 20,
+                                     color = "red"),
+        plot.margin =  margin(t = 40, l = 20),
+        plot.caption = element_text(family = "barlow",
+                                    size = 12,
+                                    hjust = 0),
+        legend.title = element_text(family = "barlow", size = 18),
+        legend.text =  element_text(family = "barlow", size = 14),
+        axis.title.y = element_blank(),
+        axis.title.x =  element_text(family = "barlow", size = 14),
+        axis.text.y =   element_text(family = "barlow", size = 12),
+        axis.text.x =   element_text(family = "barlow", size = 12),
+        plot.tag = element_text(hjust = 0.5,
+                                vjust = 0.5,
+                                size = 13),
+        plot.tag.position = c(0.9, 0.9)) +
+  guides(fill = guide_legend(nrow = 2, ncol = 1))
+
+}
 
 # saving the PDF version for a downloading request
 
