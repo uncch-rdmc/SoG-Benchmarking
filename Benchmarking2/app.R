@@ -1282,13 +1282,10 @@ if (input$selectAvg){
           axis.title.y = element_blank(),
           axis.title.x =  element_text(family = "barlow", size = 14),
           axis.text.y =   element_text(family = "barlow", size = 12),
-          axis.text.x =   element_text(family = "barlow", size = 12),
-          plot.tag = element_text(hjust = 0.5,
-                                  vjust = 0.5,
-                                  size = 13),
-          plot.tag.position = c(0.9, 0.9))  +
-    guides(fill = guide_legend(order=1))
-  
+          axis.text.x =   element_text(family = "barlow", size = 12)
+    )+ 
+    guides(color = guide_legend(order=1),shape = guide_legend(order=1), 
+           fill = guide_legend(order=2))
 } else {
 plt1 <- plt1 +
   fixed_c_scale+
@@ -1307,12 +1304,10 @@ plt1 <- plt1 +
         axis.title.y = element_blank(),
         axis.title.x =  element_text(family = "barlow", size = 14),
         axis.text.y =   element_text(family = "barlow", size = 12),
-        axis.text.x =   element_text(family = "barlow", size = 12),
-        plot.tag = element_text(hjust = 0.5,
-                                vjust = 0.5,
-                                size = 13),
-        plot.tag.position = c(0.9, 0.9)) +
-  guides(fill = guide_legend(order=1))
+        axis.text.x =   element_text(family = "barlow", size = 12)
+) + 
+  guides(color = guide_legend(order=1), shape = guide_legend(order=1),
+         fill = guide_legend(order=2))
 
 }
 
