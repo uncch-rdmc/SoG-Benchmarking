@@ -77,15 +77,29 @@ selectInput(inputId='selectedCity',
               ),
 
 # select-all-municipalities checkbox
-checkboxInput(inputId ="selectAllpeer", 
-              label= "Select all comparison municipalities",
-              value=TRUE),
+# checkboxInput(inputId ="selectAllpeer", 
+#               label= "Select all comparison municipalities",
+#               value=TRUE),
 
 # checkbox group for the municipality list
-checkboxGroupInput(inputId = "peerGroup", 
-                   label = "Select Comparison Municipalities", 
-                   choices = rvllabel, 
-                   selected=rvllabel),
+# checkboxGroupInput(inputId = "peerGroup", 
+#                    label = "Select Comparison Municipalities", 
+#                    choices = rvllabel, 
+#                    selected=rvllabel),
+
+pickerInput(
+  inputId = "peerGroup",
+  label = "Select/deselect comparison municipalities", 
+  choices = rvllabel,
+  selected = rvllabel,
+  options = list(
+    `actions-box` = TRUE, size=5), 
+  multiple = TRUE
+),
+
+
+
+
 
 # select a service 
 # s_list is replaced by a named list, srvclngToShrtRefLstWoc
