@@ -3,9 +3,8 @@ library(shinythemes)
 library(plotly)
 source("helpers.R")
 library(shinyjs)
-
 library(grDevices)
-# library(jcolors)
+library(shinyWidgets)
 
 #install.packages("ggchicklet", repos = "https://cinc.rud.is")
 #library("ggchicklet")
@@ -1162,8 +1161,10 @@ if (input$selectAvg){
 print("numerator=")
 print(input$selectedVar4num)
 print("numerator's name(label) check=")
-metricVarLabel <- 
-  names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4num)]
+print("v2lallinOne[[input$selectedVar4num]]=")
+print(v2lallinOne[[input$selectedVar4num]])
+metricVarLabel <- v2lallinOne[[input$selectedVar4num]]
+#  names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4num)]
 metricVarLabel<- stringr::str_wrap(metricVarLabel, width = 80)
 print(metricVarLabel)
   
@@ -1286,7 +1287,7 @@ if (input$selectAvg){
                                   vjust = 0.5,
                                   size = 13),
           plot.tag.position = c(0.9, 0.9))  +
-    guides(fill = guide_legend(nrow = 2, ncol = 1))
+    guides(fill = guide_legend(order=1))
   
 } else {
 plt1 <- plt1 +
@@ -1311,7 +1312,7 @@ plt1 <- plt1 +
                                 vjust = 0.5,
                                 size = 13),
         plot.tag.position = c(0.9, 0.9)) +
-  guides(fill = guide_legend(nrow = 2, ncol = 1))
+  guides(fill = guide_legend(order=1))
 
 }
 
