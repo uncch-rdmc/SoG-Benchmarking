@@ -4,11 +4,13 @@ library(plyr)
 library(dplyr)
 library(tidyr)
 library(tidyquant)
+library(ggplot2)
 library(scales)
 #library(rjson)
 library(Rmisc)
 library(stringr)
 library(RColorBrewer)
+library(sysfonts)
 library(showtext)
 
 
@@ -129,7 +131,7 @@ fixed_s_scale <- scale_shape_manual(name="Legend", values = shapeNoList)
 # -----------------------------------------------------------------------------
 # custom Google-font setting
 # -----------------------------------------------------------------------------
-#sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")
+sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")
 #
 # the above setting was replaced with a new css setting, includeCSS(), 
 # in the tags$head of app.R; see the manual of an R package, gfonts, esp.,
