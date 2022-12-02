@@ -1,76 +1,54 @@
-#library(tidyverse)
 library(tibble)
 library(readr)
 library(plyr)
 library(dplyr)
 library(tidyr)
 library(tidyquant)
-library(plotly)
-library(viridis)
-library(leaflet)
-library(DT)
 library(scales)
-library(rjson)
+#library(rjson)
 library(Rmisc)
 library(stringr)
 library(RColorBrewer)
 library(showtext)
-#bd_data<-read_rds(file="./Benchmarking_2_0_Data_Long_Form.rds")
-# raw dataset
-# bd_data <-read_rds(file="df_combined_uc.rds")
-# completed dataset
+
+
+
+# -----------------------------------------------------------------------------
+# read back the saved benchmarking data files
+# -----------------------------------------------------------------------------
+
+# completed benchmarking data file
 bd_data <-read_rds(file="bd_data_completed5.rds")
 
-# label data files
+# lookup-table file
 all_service_abbrev_to_full<-read_rds(file = "all_service_abbrev_to_full.rds")
 
+# variable-name-to-label data files
 all_varNameToLabel<-read_rds(file = "all_varNameToLabel5.rds")
 
+# -----------------------------------------------------------------------------
+# creating static objects 
+# -----------------------------------------------------------------------------
+# Coding Note:
+# creating various static files that depends on the contents of the latest
+# benchmarking data files; 
+# While some of these objects can be pre-processed and hard-coded here,
+# for some cases, the ease of maintenance rather than performance gains
+# was chosen.
 
-
-
-m_tbl  <- bd_data %>% distinct(Municipality)
-m_list <- bd_data %>% distinct(Municipality) %>% pull() 
-
-# to be replaced with a named list below: srvclngToShrtRefLst
-s_list <- bd_data %>% distinct(Service) %>% filter(Service !="census") %>% pull()
-
-# to be repaced with a named list 
-s_all_list <- bd_data %>% distinct(Service) %>% pull()
-
-
-
+# years
 y_list <- bd_data %>% distinct(Year) %>% pull() %>% as.character()
 
 
-# all M names vector
+# all participating municipalities names vector
 citylabel <-c("Apex", "Chapel Hill", "Charlotte", "Concord", "Goldsboro", 
         "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
 
-# Apex's peergroup vector
+# Apex's peer-group vector as the initial choice set
 rvllabel <- c("Chapel Hill",   "Charlotte", "Concord", "Goldsboro", 
         "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
 
-rvllabellist <- setNames(as.list(rvllabel), rvllabel)
 
-v_list <- bd_data %>% 
-  filter(Municipality=="Apex") %>% 
-  group_by(Service) %>% 
-  distinct(Variable)
-
-#s1numlist   <- bd_data %>% filter(Municipality=="Apex") %>% group_by(Service) %>% distinct(Variable) %>% filter(Service == s_list[1] ) %>% pull()
-#s1denomlist <- bd_data %>% filter(Municipality=="Apex") %>% group_by(Service) %>% distinct(Variable) %>% filter(Service == s_list[1] | Service=="census") %>% pull()
-#s1numlist   <- v_list %>% filter(Service == s_list[1] ) %>% pull()
-#s1denomlist <- v_list %>% filter(Service == s_list[1] | Service=="census") %>% pull()
-
-service2var <- list()
-valueLst<-list()
-for (srv in s_all_list) {
-  service2var[[srv]]  <-bd_data  %>% 
-    group_by(Service) %>% 
-    distinct(Variable) %>% 
-    filter(Service == srv) %>% pull()
-}
 
 # usage: srv2varlbllst[["amr"]] returns its named variable list
 # where name is their label
@@ -85,13 +63,10 @@ for (row in 1:nrow(all_varNameToLabel)) {
 }
 # usage: v2lallinOne[["qamr01"]]
 
-censusVars <- bd_data  %>% 
-  filter(Service=="census") %>% 
-  distinct(Variable) %>% pull()
 
 
 
-# 2022-10-27 
+# The update of 2022-10-27 
 # long name to acronym list for selectInput
 # replaces the above s_list
 srvclngToShrtRefLst <-list()
@@ -109,18 +84,6 @@ for (i in 1:dim(all_service_abbrev_to_full)[1]) {
 }
 
 
-# reference table: abbrev to each row
-# srvcRefTable <- list()
-# for (i in 1:dim(all_service_abbrev_to_full)[1]) {
-#   srvcRefTable[[all_service_abbrev_to_full$lc[i]]] <- all_service_abbrev_to_full[i, ]
-# }
-
-# initial selections
-
-initialNumeratorValue <- list("Lane miles"="qamr01")
-initialDenominatorValue<-list("Population, 2020"="census_01")
-
-
 # replacement of the above service2var
 srv2varlbllst <-list()
 for (srv in srvclngToShrtRefLst){
@@ -135,30 +98,41 @@ for (srv in srvclngToShrtRefLst){
   srv2varlbllst[[srv]]  <- valueLst
 }
 
-###############################################################################
-# Graph-rendering settings 
-# #############################################################################
+# -----------------------------------------------------------------------------
+# Graph-rendering-related settings 
+# -----------------------------------------------------------------------------
+# 
 # custom palettes
-# This is a static approach, i.e., all cities are used
+# This is a static approach, i.e., colors are pre-assigned to all participating 
+# cities and these city-color pairs are fixed 
 # For more realistic settings, the palettes must be dynamically subset
 pairedPalette <- brewer.pal(n=length(citylabel), name="Paired")
-print("pairedPalette=")
-print(pairedPalette)
+# print("pairedPalette=")
+# print(pairedPalette)
 lvlcl <- levels(factor(citylabel, ordered = T))
-print("levelsCityLabel=")
-print(lvlcl)
+# print("levelsCityLabel=")
+# print(lvlcl)
 names(pairedPalette) <- lvlcl
-print("pairedPalette=")
-print(pairedPalette)
+# print("pairedPalette=")
+# print(pairedPalette)
 shapeNoList <- seq(1:length(citylabel))
 names(shapeNoList)  <- lvlcl
 
+# for bar/column plot
 fixed_f_scale <- scale_fill_manual(name="Legend", values=pairedPalette)
+# for line and point
 fixed_c_scale <- scale_color_manual(name="Legend", values = pairedPalette)
+# for shapes
 fixed_s_scale <- scale_shape_manual(name="Legend", values = shapeNoList)
 
 
-###############################################################################
-# custom font setting
-###############################################################################
-sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")
+# -----------------------------------------------------------------------------
+# custom Google-font setting
+# -----------------------------------------------------------------------------
+#sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")
+#
+# the above setting was replaced with a new css setting, includeCSS(), 
+# in the tags$head of app.R; see the manual of an R package, gfonts, esp.,
+# setup_font() function
+# 
+# 

@@ -1,21 +1,20 @@
 library(shiny)
-library(shinythemes)
-library(plotly)
+#library(shinythemes)
 source("helpers.R")
 library(shinyjs)
 library(grDevices)
 library(shinyWidgets)
+#library(shinyFeedback)
 
-#install.packages("ggchicklet", repos = "https://cinc.rud.is")
-#library("ggchicklet")
 ################################################################################
 # ui defintion
 ################################################################################
 ui <- fluidPage(
-
+  shinyFeedback::useShinyFeedback(),
 #  shinythemes::themeSelector(),
   shinyjs::useShinyjs(),
   tags$head(
+    includeCSS("www/css/barlow-semi-condensed.css"),
     tags$style(HTML("
     .shiny-output-error-validation {
     color: red;
@@ -70,77 +69,82 @@ ui <- fluidPage(
 # side panel
 ###############################################################################
 sidebarPanel(
+  
 # select a base city
 selectInput(inputId='selectedCity', 
-              label='Select Base Municipality', 
+              label='Select base municipality', 
               choices=c(citylabel)
               ),
 
-# select-all-municipalities checkbox
-# checkboxInput(inputId ="selectAllpeer", 
-#               label= "Select all comparison municipalities",
-#               value=TRUE),
-
-# checkbox group for the municipality list
-# checkboxGroupInput(inputId = "peerGroup", 
-#                    label = "Select Comparison Municipalities", 
-#                    choices = rvllabel, 
-#                    selected=rvllabel),
-
+# select comparison municipalities
 pickerInput(
   inputId = "peerGroup",
-  label = "Select/deselect comparison municipalities", 
+  label = "Select comparison municipalities", 
   choices = rvllabel,
   selected = rvllabel,
+  multiple = TRUE,
   options = list(
-    `actions-box` = TRUE, size=5), 
-  multiple = TRUE
+    `actions-box` = TRUE,
+    `virtualScroll` = (length(citylabel)-1))
 ),
 
+# select years
+pickerInput(
+  inputId = "selectedYears",
+  label = "Select years", 
+  choices = y_list,
+  selected = y_list,
+  multiple = TRUE,
+  options = list(
+    # `actions-box` = TRUE,
+    `virtualScroll` = length(y_list))
+),
+
+
+
+# Button that submit the above choice of base/comparison municipalities
+actionButton("goButton", "Submit"),
 
 
 
 
 # select a service 
-# s_list is replaced by a named list, srvclngToShrtRefLstWoc
 selectInput(inputId='selectedService', 
-            label='Service', 
+            label='Select service', 
             choices=srvclngToShrtRefLstWoc,
             selected = srvclngToShrtRefLstWoc[1] ), 
 
-# select years: checkboxes 
-checkboxGroupInput(inputId="selectedYears", 
-                   label = "Years", 
-                   choices = y_list,
-                   selected = y_list),
-actionButton("goButton", "Submit"),
-# select a numerator(metric) variable:pulldown menu
 
+
+
+
+
+# select a numerator(metric) variable:pulldown menu
 selectInput(inputId='selectedVar4num', 
-            label = 'Select Service Metric', 
+            label = 'Select service metric', 
             choices = c(srv2varlbllst[["amr"]]),
             #selected = initialNumeratorValue
             selected = c()
             ),
-# srv2varlbllst[["amr"]][1]
-# checkbox to hide/show the denominator variable
+
+# show/hide the denominator-pane
 checkboxInput(inputId='selectedUseDenominator', 
-              label = 'Use Denominator|Context Variable', 
+              label = 'Use denominator|context Variable', 
               value = FALSE),
 
-# show/hide for the denominator 
+# the denominator pane
 conditionalPanel(
   condition = "input.selectedUseDenominator == true",
 
 # select a denominator variable: pulldwon menu
 selectInput(inputId='selectedVar4denom', 
-            label = 'Select Denominator/Context Variable', 
+            label = 'Select denominator/context variable', 
             choices = c()
             )
 ),
 
 
-# radio-button for Adjustment choices 
+# select a multiplier
 
 radioButtons(inputId = "selectMultiplier", 
               label = "Select a multiplier", 
@@ -149,25 +153,26 @@ radioButtons(inputId = "selectMultiplier",
               selected=0),
 
 
-# Checkbox for the Average 
+# add the Average line or not
 checkboxInput(inputId ="selectAvg", 
-              label= "Average of Comparison Municipalities",
+              label= "Average of comparison municipalities",
               value=FALSE),
 
-# CI-panel and Checkbox for CIs
+# show/hide the CI-panel and add CIs or not
 conditionalPanel(
     condition = "input.selectAvg == true",
     checkboxInput(inputId ="selectCI", 
-                label= "Add Confidence Interval (95%)",
+                label= "Add confidence interval (95%)",
                 value=FALSE
     )
 ),
+
 # Graph-Downloading button 
 downloadButton('downloadGraph'),
 
 # radio-button for page layout
 radioButtons(inputId = "selectPageLayout", 
-             label = "Select Page Layout", 
+             label = "Select page layout", 
              choices = list("Portrait"=0, "Landscape"=1),
              selected=1)
 
@@ -185,88 +190,17 @@ radioButtons(inputId = "selectPageLayout",
 # server definition
 ################################################################################
 
-server <- function(input, output) {
+server <- function(input, output, session) {
   
-  
+
 #------------------------------------------------------------------------------
 # observeEvent blocks 
 #------------------------------------------------------------------------------
 # select-all or not peer group
 
-  # when the selectAllpeer box is checked, all cities' boxes are checked
-  observeEvent(input$selectAllpeer, {
-    if (input$selectAllpeer) {
-      # select all state
-      #freezeReactiveValue(input, "peerGroup")
-      updateCheckboxGroupInput(inputId = "peerGroup",
-        choices = citylabel[!citylabel %in% c(input$selectedCity)],
-        selected = citylabel[!citylabel %in% c(input$selectedCity)])
-      # average button is allowed
-      shinyjs::enable(id="selectAvg")
-      
-    } else {
-      # there are two possible states of peerGroup checkboxGroup
-      # one state is all unselected 
-      # the other is some are unselected
-      # these two states must be separate handling
-      print("input$peerGroup: size=")
-      print(length(input$peerGroup))
-      if (length(input$peerGroup) == 0){
-        print("empty peerGroup case")
-        # unselect-all case: all-checked to all-unselected transition
-        # base city only selected
-        # 
-        # disable the average button because no member to calculate
-        #freezeReactiveValue(input, "peerGroup")
-        updateCheckboxGroupInput(inputId = "peerGroup",
-                                 choices = citylabel[!citylabel %in% c(input$selectedCity)],
-                                 selected = character(0))
-        updateCheckboxInput(inputId = "selectAvg", value = FALSE)
-        shinyjs::disable(id="selectAvg")
 
-      } else  {
-        print("non-empty peerGroup case")
-        
-        if (length(input$peerGroup) == (length(citylabel)-1)){
-          #freezeReactiveValue(input, "peerGroup")
-          updateCheckboxGroupInput(inputId = "peerGroup",
-                                   choices = citylabel[!citylabel %in% c(input$selectedCity)],
-                                   selected = character(0))
-          shinyjs::disable(id="selectAvg")
-          updateCheckboxInput(inputId = "selectAvg", value = FALSE)
-        } else {
-          #freezeReactiveValue(input, "peerGroup")
-        updateCheckboxGroupInput(inputId = "peerGroup",
-                                 choices = citylabel[!citylabel %in% c(input$selectedCity)],
-                                 selected = c(input$peerGroup))        
-      }
-      }
+  
 
-    }
-    
-  })
-  
-  # observeEvent(input$peerGroup,{
-    # if (!input$selectAllpeer){
-    #   updateCheckboxGroupInput(inputId ="peerGroup",
-    #         choices=citylabel[!citylabel %in% c(input$selectedCity)],
-    #            selected=c(input$peerGroup))
-    #   }
-
-    
-
-  # })
-  
-  
-  # observe({
-  # 
-  #   updateCheckboxGroupInput(
-  #      inputId="peerGroup",
-  #       choices=citylabel[!citylabel %in% c(input$selectedCity)],
-  #       selected=citylabel[!citylabel %in% c(input$selectedCity)])
-  # 
-  # })
-  
 
   
   
@@ -278,41 +212,31 @@ server <- function(input, output) {
   # can be updated; when there is no checked box, it seems too late to 
   # update the average-option checkbox, i.e., cannot update its state.
   observeEvent(input$peerGroup, { 
-    print("observe:updateCheckbox(Input/selectAllpeer")
+    # message("observe:updateCheckbox(Input/selectAllpeer")
     
     if (identical(input$peerGroup, citylabel[!citylabel %in% c(input$selectedCity)])){
-      print("state: select all cities")
-      print(input$peerGroup)
-      #freezeReactiveValue(input, "selectAllpeer")
-      updateCheckboxInput(inputId = "selectAllpeer", value = TRUE)
+      
+      # print("state: select all cities")
+      # print(input$peerGroup)
+      
+      # updateCheckboxInput(inputId = "selectAllpeer", value = TRUE)
       shinyjs::enable(id="selectAvg")
       
       
       
     } else {
-      print("state: not select all cities")
-      print("current peerGroup members=")
-      print(input$peerGroup)
+      # print("state: not select all cities")
+      # print("current peerGroup members=")
+      # print(input$peerGroup)
       
       if (is.null(input$peerGroup)) {
-        print("state: input$peerGroup is null:empty")
+        # print("state: input$peerGroup is null:empty")
         # do nothing;
         # the average checkbox must have been unchecked
-        
+        updateCheckboxInput(inputId = "selectAvg", value = FALSE)
+        shinyjs::disable(id="selectAvg")
       } else {
-        print("state: input$peerGroup is not null:not-empty")
-        #freezeReactiveValue(input, "selectAllpeer")
-        # keep the check-all checkbox unchecked
-        updateCheckboxInput(inputId = "selectAllpeer", value = FALSE)
-        #freezeReactiveValue(input, "peerGroup")
-        
-        # update the state of the checkbox group
-        updateCheckboxGroupInput(
-          inputId = "peerGroup",
-          choices = citylabel[!citylabel %in% c(input$selectedCity)],
-          selected = c(input$peerGroup)
-        )
-        
+        # print("state: input$peerGroup is not null:not-empty")
         # update the state for the average-option checkbox
         if (length(input$peerGroup) == 1) {
           updateCheckboxInput(inputId = "selectAvg", value = FALSE)
@@ -327,13 +251,11 @@ server <- function(input, output) {
       
     }
   })
+
 #------------------------------------------------------------------------------
 # other input fields
 #------------------------------------------------------------------------------
-  # observe({
-  #   
-  #   updateSelectInput(inputId ="" , choices = )
-  # })
+
 
 # selection of a service
 # affects the set of service metrics and its selected one
@@ -354,25 +276,34 @@ server <- function(input, output) {
 # change of city should not affect service and variables
   
   observeEvent(input$selectedCity, {
-    print("= observeEvent(input$selectedCity: start ===============")
-    print("observeEvent:city change: current settings at the begginin=")
-    print("current city=")
-    print(input$selectedCity)
-    print("current service=")
+    
+    # print("= observeEvent(input$selectedCity: start ===============")
+    # print("observeEvent:city change: current settings at the begginin=")
+    # print("current city=")
+    # print(input$selectedCity)
+    # print("current service=")
     
     updatedPeerGroup <- citylabel[!citylabel %in% c(input$selectedCity)]
     
-    print(input$selectedService)
-    print("current metric=")
-    print(input$selectedVar4num)
-    print("current peerGroup=")
-    print(input$peerGroup)
-    #freezeReactiveValue(input, "peerGroup")
-    updateCheckboxGroupInput(inputId = "peerGroup",
+    # print(input$selectedService)
+    # print("current metric=")
+    # print(input$selectedVar4num)
+    # print("current peerGroup=")
+    # print(input$peerGroup)
+
+    updatePickerInput(session=session, inputId = "peerGroup",
                              choices = updatedPeerGroup,
                              selected = c(updatedPeerGroup))
-    print("= observeEvent(input$selectedCity: end ===============")
+    # print("= observeEvent(input$selectedCity: end ===============")
   })
+
+  
+  
+  
+  
+  
+  
+  
   
 # service-invoked side-effects
   # change in service => 
@@ -381,22 +312,25 @@ server <- function(input, output) {
   # a change in input$selectedVar4num does not affect its service
   #
   observeEvent(input$selectedService, {
-    print("= observeEvent(input$selectedService: start ===============")
-    print("observeEvent(service): current input$selectedService=")
-    print(input$selectedService)
     
-    print("observeEvent(service): current metric=input$selectedVar4num=")
-    print(input$selectedVar4num)
+    # print("= observeEvent(input$selectedService: start ===============")
+    # print("observeEvent(service): current input$selectedService=")
+    # print(input$selectedService)
+    # 
+    # print("observeEvent(service): current metric=input$selectedVar4num=")
+    # print(input$selectedVar4num)
 
 
     
     # new settings
     # change the set of metrics according to a newly selected service
     varset4numerator <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
-    print("observeEvent(service): check new the changedvarset4numerator=")
-    print(varset4numerator)
-    print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
-    print(varset4numerator[1])
+    
+    
+    # print("observeEvent(service): check new the changedvarset4numerator=")
+    # print(varset4numerator)
+    # print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
+    # print(varset4numerator[1])
     
     
     freezeReactiveValue(input, "selectedVar4num")
@@ -405,14 +339,14 @@ server <- function(input, output) {
                       selected = c(varset4numerator[1]))
     
     
-    print("observeEvent(service): post-update-check")
-    print("observeEvent(service): updated metric=input$selectedVar4num=")
-    print(input$selectedVar4num)
-    
-    print("observeEvent(service): updated list=varset4numerator=")
-    print(varset4numerator)
-    
-    print("= observeEvent(input$selectedService: end ===============")
+    # print("observeEvent(service): post-update-check")
+    # print("observeEvent(service): updated metric=input$selectedVar4num=")
+    # print(input$selectedVar4num)
+    # 
+    # print("observeEvent(service): updated list=varset4numerator=")
+    # print(varset4numerator)
+    # 
+    # print("= observeEvent(input$selectedService: end ===============")
       })
   
   
@@ -420,29 +354,6 @@ server <- function(input, output) {
   
   
 
-  # observe({
-  # 
-  #   print("within observe(numerator): current input$selectedService=")
-  #   print(input$selectedService)
-  # 
-  #   print("within observe: input$selectedVar4num1=")
-  #   print(input$selectedVar4num)
-  # 
-  #   varset4numerator <- srv2varlbllst[[input$selectedService]]
-  # 
-  #   print("within observe block: varset4numerator=")
-  #   print(varset4numerator)
-  #   updateSelectInput(inputId = "selectedVar4num",
-  #                     choices=c(varset4numerator))
-  # })
-
-  # observeEvent(input$selectedVar4num
-  #   {
-  #     
-  #     
-  #   }
-  # )
-  
   
   
   
@@ -461,14 +372,17 @@ server <- function(input, output) {
   # the newly selected numerator.
   observeEvent(input$selectedVar4num,{
 
-    print("within observeEvent: input$selectedVar4num")
-    print("input$selectedVar4num=")
-    print(input$selectedVar4num)
-    print("input$selectedUseDenominator=")
-    print(input$selectedUseDenominator)
+    # print("within observeEvent: input$selectedVar4num")
+    # print("input$selectedVar4num=")
+    # print(input$selectedVar4num)
+    # print("input$selectedUseDenominator=")
+    # print(input$selectedUseDenominator)
+    
+    
     if (input$selectedUseDenominator) {
-      print("input$selectedVar4denom=")
-      print(input$selectedVar4denom)
+      
+      # print("input$selectedVar4denom=")
+      # print(input$selectedVar4denom)
       
       
       
@@ -480,36 +394,29 @@ server <- function(input, output) {
       # the list of denominators must excluded the variable
       # that is currently selected as the numerator
       # so exclude the numerator from the above list
-      # netlist <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+
       varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
-      # print("netlist=")
-      # print(netlist)
-      # add the list of denominators and list of census-variables
-      # varset4denominator <- c(netlist, srv2varlbllst[["census"]])
+
       # print("varset4denominator=")
       # print(varset4denominator)
-      #freezeReactiveValue(input, "selectedVar4denom")
-      # update the list of denominator (choices)
-      # and the selected one (selected)
-      
-      
-      
-      
-      
-      
+
       
       # denominator is on
       if (input$selectedVar4num == input$selectedVar4denom) {
-        print("numerator is the previously selected denominator")
-        print("reset the selected one for the denominator")
+        
+        # print("numerator is the previously selected denominator")
+        # print("reset the selected one for the denominator")
+        
         updateSelectInput(
           inputId = "selectedVar4denom",
           choices = c(varset4denominator),
           selected = c(varset4denominator[1])
         )
       } else {
-        print("numerator is NOT the previously selected denominator")
-        print("keep the current choice of denominator")
+        
+        # print("numerator is NOT the previously selected denominator")
+        # print("keep the current choice of denominator")
+        
         updateSelectInput(
           inputId = "selectedVar4denom",
           choices = c(varset4denominator),
@@ -520,7 +427,7 @@ server <- function(input, output) {
     } else {
       # denominator is off
       # do nothing
-      print("denominator is off; do nothing here")
+      # print("denominator is off; do nothing here")
     }
     
   })
@@ -535,11 +442,15 @@ server <- function(input, output) {
   # 
   observeEvent(input$selectedUseDenominator, {
     
-    print("within observeEvent: input$selectedUseDenominator")
-    print("input$selectedService=")
-    print(input$selectedService)
-    print("input$selectedVar4num=")
-    print(input$selectedVar4num)
+    
+    
+    # print("within observeEvent: input$selectedUseDenominator")
+    # print("input$selectedService=")
+    # print(input$selectedService)
+    # print("input$selectedVar4num=")
+    # print(input$selectedVar4num)
+    
+    
     
     # get the current list of **all** variables for the current service
     # note: this list now includes census variables
@@ -549,13 +460,11 @@ server <- function(input, output) {
     # the list of denominators must excluded the variable
     # that is currently selected as the numerator
     # so exclude the numerator from the above list
-    #netlist <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+
     varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
-    # print("netlist=")
-    # print(netlist)
-    # add the list of denominators and list of census-variables
-    # varset4denominator <- c(netlist, srv2varlbllst[["census"]])
-    print("update the UI: selectedVar4denom ")
+
+    # print("update the UI: selectedVar4denom ")
+    # 
     freezeReactiveValue(input, "selectedVar4denom")
     updateSelectInput(
       inputId = "selectedVar4denom",
@@ -563,8 +472,8 @@ server <- function(input, output) {
       selected = c(varset4denominator[1])
     )
     
-    print("input$selectedVar4denom=")
-    print(input$selectedVar4denom)
+    # print("input$selectedVar4denom=")
+    # print(input$selectedVar4denom)
   })
   
   
@@ -593,763 +502,972 @@ server <- function(input, output) {
     
   })
   
-################################################################################
-  output$initialMessage <- renderText(
-    {
-      if (    input$goButton == 0){
-        HTML(paste(
-          "Welcome to Benchmarking 2.0.",
-            paste("Please click the Submit button ",
-          "to start a new benchmarking session.", sep = "<br />"), sep = "<br /><br />"))
-      } else {
-        paste(c(""))
-      }
+# years UI: avoid the no-selection case
+  observeEvent(input$selectedYears,{
+    
+    # message("\n\nwithin observeEvent: input$selectedYears")
+    # print("length(input$selectedYears")
+    # print(length(input$selectedYears))
+    
+    if (length(input$selectedYears) == 0){
       
+      # 
+      validate("Please select at least one year!")
+
+      # message("no-year-selected state: the last year will be selected")
+
+      updatePickerInput(session=session, 
+        inputId = "selectedYears",
+        choices = c(y_list),
+        selected = c(y_list[length(y_list)])
+      )
+      
+      
+      
+      
+    } else {
+      # shinyFeedback::hideFeedback("selectedYears")
+    }
+
+  })
+  
+
+###############################################################################
+# renderText(): generating the first-time-only session-starting message
+###############################################################################
+  output$initialMessage <- renderText({
+    if (input$goButton == 0) {
+      HTML(paste(
+        "Welcome to Benchmarking 2.0.",
+        paste(
+          "Please click the Submit button ",
+          "to start a new benchmarking session.",
+          sep = "<br />"
+        ),
+        sep = "<br /><br />"
+      ))
+    } else {
+      paste(c(""))
     }
     
-  )
+  })
   
 ###############################################################################
-# plot
+# renderPlot(): generating the benchmarking plot 
 ###############################################################################
-# for aPDF generation
+
+  
+  
+  # for saving a PDF-file
   tempPDFfile <-tempfile()
   
   output$scatterplot <- renderPlot({  
 
-    base::message("= renderPlotly: START ================================================")
-    base::message("output$scatterplot: start-time=",as.POSIXct(Sys.time(), tz = "EST5EDT"))
-    
-    # input: sanity check
-    # input$selectedVar4denom was removed
-#     req(input$selectedCity, 
-#         input$selectedService,
-#         input$selectedYears,
-#         input$selectedVar4num
-# )
-# 
-# 
-# temporarily masked
+    # base::message("= renderPlotly: START ==================================")
+    # base::message("output$scatterplot: start-time=", 
+    # as.POSIXct(Sys.time(), tz = "EST5EDT"))
+    # 
+
+    # The following setting ensures that 
+    # peer-group membership is not reactively (instantaneously) updated;
+    # the current number of members seems to be too many to reactively handle
+    # quick check/uncheck-box actions; consequently, 
+    # it is now collectively updated by clicking the Submit button and 
+    # isolate() is used here
     checkedM <- isolate(input$peerGroup)
+    
+    
+    # The first-time handling when the Submit button has nothing to submit
     if (input$goButton == 0){
       return()
     }
-    #checkedM <- input$peerGroup
+    # -------------------------------------------------------------------------
+    # input: sanity check
+    # -------------------------------------------------------------------------
+    # print("selectedYears=")
+    # print(length(input$selectedYears))
+    
+    # Currently there is no convenient, ready-to-use solution about other than
+    # the following primitive, warning-message solution
+    # attempts to automatically set the latest year selected at least 
+    # when a user mistakenly unchecked all years did not work so far. 
+    if (length(input$selectedYears) == 0){
+      validate("Please select at least a year")
+    }
+
+    # sanity check against key input variables: base city, service, numerator
+    # variable
+    req(input$selectedCity,
+        input$selectedService,
+        input$selectedVar4num
+    )
+    # 
+    # isolcating the base-city did not work; it seems the choice of a base city
+    # must reactively update the state of selected comparison cities;
+    # otherwise, isolating the choice of a base-city(= waiting for a submission
+    # action to complete the choice) ended up erratic/unstable UI states.
+    # baseCity = isolate(input$selectedCity) <= this did not work
+    baseCity = input$selectedCity
+    
+    # -------------------------------------------------------------------------
+    # data-prep stage: 2 steps [factory-default] or 4 steps
+    # 
+    # if the denominator option is not selected
+    # step 1: base-city (numerator)
+    # step 2: peer-group (numerator)
+    # 
+    # if the denominator option is selected
+    # steps 1/2: base-city (numerator, denominator)
+    # steps 3/4: peer-group (numerator, denominator)
+    # -------------------------------------------------------------------------
+    # note: data for these numerators and denominators are organized as matrix,
+    # not tibble for easier division-operations
+    
+    #--------------------------------------------------------------------------
+    # step 1: base city's numerator
+    #--------------------------------------------------------------------------
+    #
+    # !!!!!!!!!! warning !!!!!!!!!!
+    # 
+    # About duplicated variable names
+    # 
+    # the same variable name appears in different services, i.e.,
+    # the same variable name is used in more than one services and therefore
+    # the service filter must be applied first before the filter of variable 
+    # name
+
+
+    # print("selected Service=")
+    # print(input$selectedService)
+
+
+    
+    # get full service-name for user-friendly rendering
+    serviceNameFull <-
+      names(srvclngToShrtRefLstWoc)[which(srvclngToShrtRefLstWoc == input$selectedService)]
+    # print("full service name=")
+    # print(serviceNameFull)
+    
+    # print("currently selected numerator=")
+    # print(input$selectedVar4num)
+
+
+    # define a coding-friendly var for the denominator-option switch
+    useDenominator <- FALSE
+    if (input$selectedUseDenominator) {
+      useDenominator <- TRUE
+      # print("A case of using a denominator")
+      # print(input$selectedUseDenominator)
+      
+      # print("current denominator=")
+      # print(input$selectedVar4denom)
+      
+    } else {
+      # print("This request does not use a denominator")
+    }
+
+
+
+    # dplyr's select() had some issue with a vector of numeric values
+    # given by an input variable such as c(2020, 2021, 2022)
+    #
+    # print("selectedYears=")
+    # print(input$selectedYears)
+    # print(typeof(input$selectedYears))
+    # print(str(input$selectedYears))
+    #
+    # dplyr::select() failed to evaluate input$selectedYears as a vector
+    # for some reason
+    # make sure the vector is character
+    selectedYearsC <- as.character(input$selectedYears)
+    
+    # 
+    # print("selectedYearsC=")
+    # print(selectedYearsC)
 
     
     
-# plot for tab 1: start ========================================================
-# data steps
-
-# ==============================================================================
-# matrix of data for the numerator and denominator for municipalities
-# ==============================================================================
-# 
-# step 1: selected city
-# base-line data for the numerator 
-# warning: since the same variable name is used in more than one services
-# the service filter must be applied first
-
-print("selected city=")
-print(input$selectedCity)
+    # !!!!!!!!!! warning !!!!!!!!!!
+    # participating cities do not provide a complete data for a given year
+    # under a certain combination of selection criteria, 
+    # there would be an empty-data case
+    # The following block checks this empty-data case for the base city 
+    # and if so, just generates a warning message; 
+    # Even if a base-city does not have data, this does not terminate 
+    # the whole rendering process and tries to display a peer-group's data.
+    # 
+    valueAvailableCities <- bd_data %>%
+      filter(Service == input$selectedService |
+               Service == "census")   %>%
+      filter(Variable == input$selectedVar4num)    %>%
+      filter(!is.na(Value)) %>%
+      distinct(Municipality) %>%
+      pull()
     
-print("peerGroup=")
-print(checkedM)
-    
-print("selected Service=")
-print(input$selectedService)
+    # print("valueAvailableCities=")
+    # print(valueAvailableCities)
+    # print("selected city=")
+    # print(baseCity)
 
-print("full service name=")
-serviceNameFull<- names(srvclngToShrtRefLstWoc)[which(srvclngToShrtRefLstWoc == input$selectedService)]
-print(serviceNameFull)
-
-
-print("currently selected numerator=")
-print(input$selectedVar4num)
-
-
-# define a coding-friendly var
-useDenominator<-FALSE
-if (input$selectedUseDenominator){
-  useDenominator<-TRUE
-  print("use a denominator")
-  print(input$selectedUseDenominator)
-  
-  ## base municipality: numerator 
-  print("denominator=")
-  print(input$selectedVar4denom)
-  
-  # update the multiplier value to 
-  
-} else {
-  print("Does not use a denominator")
-}
+    msg_no_base_m_data <- ""
+    if (is.na(match(baseCity, valueAvailableCities))) {
+      msg_no_base_m_data <-  paste(
+        "\nData for the selected base municipality (",
+        baseCity,
+        ") are not available for these years."
+      )
+    }
 
 
 
 
-
-print("selectedYears=")
-print(input$selectedYears)
-print(typeof(input$selectedYears))
-print(str(input$selectedYears))
-# dplyr::select() failed to evaluate input$selectedYears as a vector
-selectedYearsC<- as.character(input$selectedYears)
-print("selectedYearsC=")
-print(selectedYearsC)
-
-valueAvailableCities <- bd_data %>% 
-  filter(Service == input$selectedService | Service =="census")   %>%
-  filter(Variable==input$selectedVar4num)    %>%
-  filter(!is.na(Value)) %>%
-  distinct(Municipality) %>%
-  pull()
-print("valueAvailableCities=")
-print(valueAvailableCities)
-print("selected city=")
-print(input$selectedCity)
-
-msg_no_base_m_data <-"" 
-if (is.na(match(input$selectedCity, valueAvailableCities))){
-  msg_no_base_m_data <-  paste(
-    "\nData for the selected base municipality (", 
-input$selectedCity,
-") is not available for these years.")
-}
-
-# validate(
-#   need(!is.na(match(input$selectedCity, valueAvailableCities)),
-#        paste("\n\nThe selected base municipality (", 
-#              input$selectedCity
-#              ,") has not yet reported data about\n\t",serviceNameFull,
-#              "\nfor these years.\n","\nPlease choose a different base municipality.")
-#        )
-# )
-
-
-tmp_data_sc_nm <- bd_data %>%
-  filter(Service == input$selectedService | Service =="census")   %>%
-  filter(Variable==input$selectedVar4num)    %>%
-  filter(Municipality == input$selectedCity) %>%
-  spread(key=Year, value=Value)  %>%
-  select(selectedYearsC)
-print("tmp_data_sc_nm=")
-print(tmp_data_sc_nm)
-
-# if (all(is.na(tmp_data_sc_nm))){
-#   message("all NA case ======================================")
-# }
-
-# the following select() return an error message 
-# all-NA tibble seems to be rejected
-# the following is a roundabout solution
-data_sc_nm <- bd_data %>% 
-  filter(Service == input$selectedService | Service =="census")   %>%
-  filter(Variable==input$selectedVar4num)    %>%
-  filter(Municipality == input$selectedCity) %>%
-  spread(key=Year, value=Value)        %>%
-  select(selectedYearsC)        %>% 
-  as.matrix()
-print("data_sc_nm: afer as.matrix()=")
-print(data_sc_nm)
-
-# The following c(4:6) would fail if not all 3 years are selected
-#data_sc_nm <- t(as.matrix(data_sc_nm[c(4:6)]))
-# data_sc_nm <- t(as.matrix(data_sc_nm))
-# print("data_sc_nm: afer subset and t()=")
-# print(data_sc_nm)
-
-colnames(data_sc_nm) <- selectedYearsC
-print("data_sc_nm: afer colnames=")
-print(data_sc_nm)
-
-suppressWarnings(storage.mode(data_sc_nm)<-"numeric")
-print("data_sc_nm:after changing stroage mode=")
-print(data_sc_nm)
-print(str(data_sc_nm))
-numerator_is_all_na <- FALSE
-if (all(is.na(data_sc_nm))){
-  message("numerator: all NA case")
-  numerator_is_all_na<-TRUE
-  msg_no_base_m_data <-  paste(
-    "\nData for the selected base municipality (", 
-    input$selectedCity,") is not available for these years.")
-} else {
-  data_sc_nm <- 10^as.integer(input$selectMultiplier) *  data_sc_nm
-}
-print("data_sc_nm: after multiplier is aplied=")
-print(data_sc_nm)
-
-
-#dimnames(data_sc_nm)[[1]] <- input$selectedCity
-print("length(input$selectedCity)=")
-print(length(input$selectedCity))
-rownames(data_sc_nm)<-  input$selectedCity
-print("data_sc_nm: after adding rowname=")
-print(data_sc_nm)
-
-## ----------------------------------------------------------------------------
-## base municipality: denominator: to be ignored if no denominator
-## ----------------------------------------------------------------------------
-# base-line data for the denominator
-#  variables must be added
-
-if (useDenominator){ 
-  print("base m: denominator data block: ========== start ==========")
-  print("current city=")
-  print(input$selectedCity)
-  print("current service=")
-  print(input$selectedService)
-  print("current metric=")
-  print(input$selectedVar4denom)  
-  
-  
-  
-data_sc_dm <- bd_data %>% 
-  filter(Service == input$selectedService | Service =="census")   %>%  
-  filter(Variable==input$selectedVar4denom)  %>%
-  filter(Municipality == input$selectedCity) %>%
-  spread(key=Year, value=Value)        %>%
-  select(selectedYearsC)        %>% 
-  as.matrix()
-print("data_sc_dm=1")
-print(data_sc_dm)
-dimnames(data_sc_dm)[[1]] <- input$selectedCity
-print("data_sc_dm=2")
-print(data_sc_dm)
-
-
-if (all(is.na(data_sc_dm))){
-  message("base city: denominator: all NA case")
-  numerator_is_all_na<-TRUE
-  msg_no_base_m_data <-  paste(
-    "\nDenominator data for the selected base municipality (", 
-    input$selectedCity,") is not available for these years.")
-}
-
-
-}
-## ----------------------------------------------------------------------------
-
-
-
-# ------------------------------------------------------------------------------
-# step 2: peer group
-# warning: since the same variable name is used in more than one services
-# the service filter must be applied first
-# base-line data for the numerator
-test_i_selectedService <- input$selectedService
-test_i_selectedVar4num <- input$selectedVar4num
-test_i_peerGroup       <- checkedM
-# tmp_pg_nm <- bd_data %>% 
-#   filter(Service == input$selectedService)   %>%
-#   filter(Variable==input$selectedVar4num)   %>%
-#   filter(Municipality %in% input$peerGroup) %>% 
-#   arrange(Municipality, Year)
-print("filters for the peergroup=")
-print(test_i_selectedService)
-print(test_i_selectedVar4num)
-print("test_i_peerGroup=")
-print(test_i_peerGroup)
-
-if (!is.null(checkedM)){ 
-  
-  # tmp_pg_nm <- bd_data %>% 
-  #   filter(Service == test_i_selectedService)   %>%
-  #   filter(Variable==test_i_selectedVar4num)   #%>%
-  # filter(Municipality %in% test_i_peerGroup) %>% 
-  # arrange(Municipality, Year)
-  # print("tmp_pg_nm=")
-  # print(tmp_pg_nm)
-}
-
-if (!is.null(checkedM)){ 
-  
-  data_pg_nm <- bd_data %>% 
-    filter(Service == input$selectedService | Service =="census")   %>%
-    filter(Variable==input$selectedVar4num)   %>%
-    filter(Municipality %in% checkedM) %>% 
-    arrange(Municipality, Year) %>%
-    spread(key=Year, value=Value)       %>%
-    select(selectedYearsC) %>% 
-    as.matrix()
-  
-  # print("data_pg_nm(s)=")
-  # print(data_pg_nm)
-  
-  data_pg_nm <- 10^as.integer(input$selectMultiplier) * data_pg_nm
-  
-  # print("data_pg_nm(b)=")
-  # print(data_pg_nm)
-  # print("input$peerGroup=")
-  # print(input$peerGroup)
-  
-  # if a dataset is complete,
-  # input$peerGroup can be used;
-  # if a dataset is not complete,
-  # i.e., some municipalities did not report, 
-  # a peer-member set based on an actual data is necessary
-  
-  # updatedPeerGroup <- bd_data %>% 
-  #   filter(Service == input$selectedService)   %>%
-  #   filter(Variable== input$selectedVar4num)   %>% 
-  #   filter(Municipality %in%  input$peerGroup) %>% 
-  #   arrange(Municipality) %>%
-  #   distinct(Municipality) %>% pull(Municipality)
-  # 
-  # print("updatedPeerGroup=")
-  # print(updatedPeerGroup)
-  
-  rownames(data_pg_nm) <- checkedM
-
-  # print("data_pg_nm(a)=")
-  # print(data_pg_nm)
-  
-}
-## peer group: denominator specific
-## ----------------------------------------------------------------------------
-# base-line data for the denominator
-#  variables must be added
-if (!is.null(checkedM)){ 
-  if (useDenominator){
-    
-    data_pg_dm <- bd_data %>% 
-      filter(Service == input$selectedService | Service =="census")   %>%
-      filter(Variable==input$selectedVar4denom) %>%
-      #filter(Municipality %in% updatedPeerGroup) %>% 
-      filter(Municipality %in% checkedM) %>% 
-      spread(key=Year, value=Value)       %>%
-      select(selectedYearsC) %>% 
+    # generating a base-city's numerator data as matrix
+    # dimension: 1 x # of selected years
+    data_sc_nm <- bd_data %>%
+      filter(Service == input$selectedService |
+               Service == "census")   %>%
+      filter(Variable == input$selectedVar4num)    %>%
+      filter(Municipality == baseCity) %>%
+      spread(key = Year, value = Value)        %>%
+      select(selectedYearsC)        %>%
       as.matrix()
-    rownames(data_pg_dm) <- checkedM
-    # rownames(data_pg_dm) <- updatedPeerGroup
-    print("data_pg_dm=")
-    print(data_pg_dm)
-  }
-}
-# ------------------------------------------------------------------------------
-# working on peer group
-if (!is.null(checkedM)){ 
-  print("selectedYears=")
-  print(selectedYearsC)
-  print("selectedYears:length=")
-  print(length(selectedYearsC))
-  
-  
-  
-  data4EachPeerCity_raw_m <- data_pg_nm
-  ## if denominoatr is used
-  if (useDenominator){
-    data4EachPeerCity_raw_m <- data4EachPeerCity_raw_m / data_pg_dm
-  }
-  
-  ## peer-city case
-  
-  
-  print("data4EachPeerCity_raw_m=")
-  print(data4EachPeerCity_raw_m)
-  print(str(data4EachPeerCity_raw_m))
-  print("has_rownames: data4EachPeerCity_raw_m=")
-  print(has_rownames(data4EachPeerCity_raw_m))
-  
-  
-  
-  # data4plot <- rownames_to_column(as.data.frame(data4plot_raw), var="catgry") %>% as_tibble()
-  data4EachPeerCity_rawt <- 
-    rownames_to_column(as.data.frame(data4EachPeerCity_raw_m),
-                       var="catgry") %>%
-    as_tibble()
-  
-  print("data4EachPeerCity_rawt=")
-  print(data4EachPeerCity_rawt)
-  
-  data4EachPeerCity_rawt <- data4EachPeerCity_rawt %>%
-    gather(selectedYearsC, key="Year", value = "quotient")
-  print("data4EachPeerCity_rawt=")
-  print(data4EachPeerCity_rawt)
-  
-  
-  tmpTibblePg <- NULL
-  if (useDenominator){
-    tmpTibblePg <- as_tibble(data_pg_nm / data_pg_dm)
-  } else {
-    tmpTibblePg <- as_tibble(data_pg_nm)
-  }
-  
-  
-  
-  
-  data4EachPeerCity <- tmpTibblePg  %>% 
-    gather(selectedYearsC, key="Year", value = "quotient")
-  
-  
-  print("data4EachPeerCity=")
-  print(data4EachPeerCity)
-  
-  
-  
-  summarizedPG <- tmpTibblePg %>% 
-    gather(selectedYearsC, key="Year", value = "quotient") %>%
-    summarySE(measurevar = "quotient", groupvars = "Year", na.rm = TRUE)
-  
-  
-  
-  
-  print("summarizedPG=")
-  print(summarizedPG)
+    
+    # print("data_sc_nm: afer as.matrix()=")
+    # print(data_sc_nm)
 
-} # end of non-empty peerGroup-case
+    # re-add column names: the above as.matrix() removed column names
+    colnames(data_sc_nm) <- selectedYearsC
+    
+    # print("data_sc_nm: afer colnames=")
+    # print(data_sc_nm)
 
+    suppressWarnings(storage.mode(data_sc_nm) <- "numeric")
+    # print("data_sc_nm:after changing stroage mode=")
+    # print(data_sc_nm)
+    # print(str(data_sc_nm))
+    
+    
+    # Before the adjustment by the multiplier,
+    # check whether it is an all-NA case first
+    numerator_is_all_na <- FALSE
+    if (all(is.na(data_sc_nm))) {
+      message("Base municipality's numerator: all NA case")
+      
+      numerator_is_all_na <- TRUE
+      
+      msg_no_base_m_data <-  paste(
+        "\nData for the selected base municipality (",
+        baseCity,
+        ") are not available for these years."
+      )
+      
+      
+      # what happens if all-NA
+      #validate("Please select at least a year")
+      
+      
+    } else {
+      data_sc_nm <- 10 ^ as.integer(input$selectMultiplier) *  data_sc_nm
+    }
+    
+    # print("data_sc_nm: after multiplier is aplied=")
+    # print(data_sc_nm)
+    
+    # re-attach the base-city's name to the row
+    rownames(data_sc_nm) <-  baseCity
+    
+    
+    # print("data_sc_nm: after adding rowname=")
+    # print(data_sc_nm)
 
-tmpMatrixScQ <- NULL
-if (!is.null(checkedM)){ 
-  if (useDenominator){
-    tmpMatrixScQ <- data_sc_nm / data_sc_dm
-  } else{
-    tmpMatrixScQ <- data_sc_nm
-  }
+    #--------------------------------------------------------------------------
+    # step 2: base municipality: denominator: to be ignored if no denominator
+    #--------------------------------------------------------------------------
+    # base-line data for the denominator variables must be added
 
-} else {
-  # no peer case
-  
-  if (useDenominator){
-    tmpMatrixScQ <- data_sc_nm / data_sc_dm
-  } else{
-    tmpMatrixScQ <- data_sc_nm
-    print("tmpMatrixScQ=")
-    print(tmpMatrixScQ)
-    print("t(tmpMatrixScQ)[, 1]=")
-    print(t(tmpMatrixScQ)[, 1])
-  }
-  
-}
-
-
-# last step: selected City 
-if (!is.null(checkedM)){ 
-  data4plot_raw <- rbind(t(tmpMatrixScQ)[, 1], t(summarizedPG[, 3]))
-  rownames(data4plot_raw ) <- c(input$selectedCity, "Average")
-} else {
-  # do nothing?
-  data4plot_raw <- tmpMatrixScQ
-  # data4plot_raw <- t(as.matrix(t(tmpMatrixScQ)[, 1]))
-  # print("data4plot_raw=")
-  # print(data4plot_raw)
-  # print(str(data4plot_raw))
-  # print("input$selectedCity=")
-  # print(input$selectedCity)
-  # rownames(data4plot_raw ) <- c(input$selectedCity)
-}
-
-print("data4plot_raw=")
-print(data4plot_raw)
-#-------------------------------------------------------------------------------
-
-data4plot <- rownames_to_column(as.data.frame(data4plot_raw), 
-                                var="catgry") %>% 
-  as_tibble()
-if (ncol(data4plot) == 2){
-  print("***** column is 3 *****")
-  yr <- selectedYearsC[1]
-  print(yr)
-  if (is.null(checkedM)){
-    # do nothing
-  } else {
-  data4plot <- data4plot %>% dplyr::rename(!!yr:= "V1")
-}
-  
-} else {
-  print("***** column is not 2 *****")
-  print(ncol(data4plot))
-}
-print("data4plot=")
-print(data4plot)
+    if (useDenominator) {
+      
+      # print("base m: denominator data block: ========== start ==========")
+      # print("current city=")
+      # print(baseCity)
+      # print("current service=")
+      # print(input$selectedService)
+      # print("current metric=")
+      # print(input$selectedVar4denom)
+      
+      
+      # generating a base-city's denominator data as matrix
+      # dimension: 1 x # of selected years
+      data_sc_dm <- bd_data %>%
+        filter(Service == input$selectedService |
+                 Service == "census")   %>%
+        filter(Variable == input$selectedVar4denom)  %>%
+        filter(Municipality == baseCity) %>%
+        spread(key = Year, value = Value)        %>%
+        select(selectedYearsC)        %>%
+        as.matrix()
+      
+      
+      # print("data_sc_dm:before=")
+      # print(data_sc_dm)
+      
+      # re-attach the base-city's name
+      dimnames(data_sc_dm)[[1]] <- baseCity
+      
+      # print("data_sc_dm:after=")
+      # print(data_sc_dm)
+      
+      # generating a waning message
+      if (all(is.na(data_sc_dm))) {
+        message("base city: denominator: all NA case")
+        numerator_is_all_na <- TRUE
+        msg_no_base_m_data <-  paste(
+          "\nDenominator data for the selected base municipality (",
+          baseCity,
+          ") is not available for these years."
+        )
+      }
+      
+      
+    }
+    #--------------------------------------------------------------------------
+    
 
 
+    # -------------------------------------------------------------------------
+    # step 3: peer-group's numerator data
+    # -------------------------------------------------------------------------
+    # warning: since the same variable name is used in more than one services
+    # the service filter must be applied first
+    # 
+    # base-line data for the numerator
 
-# the following line fails if the number of years is 1
-data4plot_sc <- data4plot %>% 
-  gather(selectedYearsC, key = "Year", value = "quotient") %>%
-  filter(catgry== input$selectedCity)
-print("data4plot_sc=")
-print(data4plot_sc)
+    # note: Even if the comparison group is empty, 
+    # as long as valid data for the base municipality exist,
+    # the rendering process continues
 
-if (!is.null(checkedM)){ 
-  data4plot_pg <- data4plot %>% 
-    gather(selectedYearsC, key = "Year", value = "quotient") %>%
-    filter(catgry != input$selectedCity)
-  print("data4plot_pg=")
-  print(data4plot_pg)
-  
-  data4plot_pgx <- data4plot_pg %>% add_column(ci = summarizedPG[["ci"]])
-  print("==================== end of data-prep for plot ==================")
-  
-}
-# -----------------------------------------------------------------------------
-# plot
-# -----------------------------------------------------------------------------
-# An if-block after ggplot() seems not to accept more than 1 geom_xxx 
-# statements within it and the following incremental approach was used
+    if (!is.null(checkedM)) {
+      
+      
+      # generating a peer-group's numerator data as matrix
+      # dimension: # of selected comparison cities x # of selected years
+      data_pg_nm <- bd_data %>%
+        filter(Service == input$selectedService |
+                 Service == "census")   %>%
+        filter(Variable == input$selectedVar4num)   %>%
+        filter(Municipality %in% checkedM) %>%
+        arrange(Municipality, Year) %>%
+        spread(key = Year, value = Value)       %>%
+        select(selectedYearsC) %>%
+        as.matrix()
+      
+      # print("data_pg_nm(s)=")
+      # print(data_pg_nm)
+      
+      
+      # Before the adjustment by the multiplier,
+      # check whether it is an all-NA case first
+      if (all(is.na(data_pg_nm))) {
+        message("peer group's numerator: all NA case")
+        
+        pg_numerator_is_all_na <- TRUE
+        
+        msg_no_pg_m_data <-  paste(
+          "\nNumerator data for the current peer-group members (",
+          checkedM,
+          ") are not available for these years."
+        )
+      } else {
+        data_pg_nm <- 10 ^ as.integer(input$selectMultiplier) * data_pg_nm
+      }
+      
+      # print("data_pg_nm(b)=")
+      # print(data_pg_nm)
+      
+      # re-attach peer-group's name vector
+      rownames(data_pg_nm) <- checkedM
+      
+      # print("data_pg_nm(a)=")
+      # print(data_pg_nm)
+      
+    }
+    # -------------------------------------------------------------------------
+    # step 4: peer-group's denominator if the denominator option is selected
+    # -------------------------------------------------------------------------
 
+    if (!is.null(checkedM)) {
+      if (useDenominator) {
+        
+        # generating a peer-group's denominator data as matrix
+        # dimension: # of selected comparison cities x # of selected years
+        
+        data_pg_dm <- bd_data %>%
+          filter(Service == input$selectedService |
+                   Service == "census")   %>%
+          filter(Variable == input$selectedVar4denom) %>%
+          filter(Municipality %in% checkedM) %>%
+          spread(key = Year, value = Value)       %>%
+          select(selectedYearsC) %>%
+          as.matrix()
+        
+        # re-attach the peer-group's name vector
+        rownames(data_pg_dm) <- checkedM
+        
 
-print("==================== beginning of plot ==================== ")
+        # print("data_pg_dm=")
+        # print(data_pg_dm)
+      }
+    }
+    # -------------------------------------------------------------------------
+    # additional step if the denominator option is selected
+    # calculating a quotient for the peer-group for selected years
+    # -------------------------------------------------------------------------
+    
 
-
-showtext_auto()
-# update the palette according to the current checkedM
-fixed_f_scale <- scale_fill_manual(name="Legend", values = pairedPalette[checkedM])
-fixed_c_scale <- scale_color_manual(name="Legend", values = pairedPalette[checkedM])
-fixed_s_scale <- scale_shape_manual(name="Legend", values = shapeNoList[checkedM])
-
-# baseline rendering 
-plt1 <- data4plot_sc %>%
-  ggplot() +
-       geom_col(aes(x=Year, y=quotient, fill=catgry)) + 
-  scale_y_continuous(name="Value", labels = comma) +
-  scale_fill_manual(name="Base", values=c("#B3B3B3")) 
-
-
-if (input$selectAvg){
-  print("extra-step for adding average")
-  # add an average line
-  plt1 <- plt1 + 
-            geom_line(data = data4plot_pg, 
-            aes(x = Year, y = quotient, group = catgry, color = catgry),
-            size=1
-            ) + 
-            geom_point(
-              data = data4plot_pg, 
-              aes(x = Year, y = quotient, group = catgry, color = catgry),
-              size=3
-            ) 
-  
-  if (input$selectCI) {
-    # add CI-bands
-    plt1 <- plt1 + geom_errorbar(data = data4plot_pgx,
-      aes(ymin = quotient - ci, ymax = quotient + ci), 
-      width = .1, color = "#696969", position = position_dodge(0.1)) 
-  }
-  
-  # plt1 <- plt1 + 
-  #   scale_color_discrete(name = "Legend", 
-  #   labels = c("average of \ncomparison \nmunicipalities"))
-  
-} else {
-  # each municipality's line is added 
-  # tibble to be used
-  print("no average, etc.")
-  
-  if (!is.null(checkedM)){ 
-    if (length(selectedYearsC) >1) {
+    if (!is.null(checkedM)) {
+      
+      # print("selectedYears=")
+      # print(selectedYearsC)
+      # print("selectedYears:length=")
+      # print(length(selectedYearsC))
+      
+      
+      
+      # working on the peer-group first
+      # create a copy of the numerator data-matrix
+      data4EachPeerCity_raw_m <- data_pg_nm
+      
+      # if denominoatr option is select6ed
+      if (useDenominator) {
+        data4EachPeerCity_raw_m <- data4EachPeerCity_raw_m / data_pg_dm
+      }
+      
+      print("data4EachPeerCity_raw_m=")
+      print(data4EachPeerCity_raw_m)
+      # print(str(data4EachPeerCity_raw_m))
+      # print("has_rownames: data4EachPeerCity_raw_m=")
+      # print(has_rownames(data4EachPeerCity_raw_m))
+      
+      # attach a column of city names to the data and convert to tibble
+      data4EachPeerCity_rawt <-
+        rownames_to_column(as.data.frame(data4EachPeerCity_raw_m),
+                           var = "catgry") %>%
+        as_tibble()
+      
       
       print("data4EachPeerCity_rawt=")
       print(data4EachPeerCity_rawt)
-      print("data4EachPeerCity_rawt$catgry=")
-      print(data4EachPeerCity_rawt$catgry)
-      print("levels(data4EachPeerCity_rawt$catgry)=")
-      print(levels(data4EachPeerCity_rawt$catgry))
+      
+      # tibble: wide to long transformation
+      data4EachPeerCity_rawt <- data4EachPeerCity_rawt %>%
+        gather(selectedYearsC, key = "Year", value = "quotient")
+      
+      
+      print("data4EachPeerCity_rawt=")
+      print(data4EachPeerCity_rawt)
+      
+      # extra step if the denominator option is selected
+      tmpTibblePg <- NULL
+      if (useDenominator) {
+        tmpTibblePg <- as_tibble(data_pg_nm / data_pg_dm)
+      } else {
+        tmpTibblePg <- as_tibble(data_pg_nm)
+      }
+      
+      
+      
+      # re-attach column names after the above matrix-element-wise division
+      # ???????? data4EachPeerCity is used later ?????
+      data4EachPeerCity <- tmpTibblePg  %>%
+        gather(selectedYearsC, key = "Year", value = "quotient")
+      
+      
+      print("data4EachPeerCity=")
+      print(data4EachPeerCity)
+      
+      
+      # A convenient way to calculate year-wise mean and CI values by using 
+      # Rmisc::susummarySE()
+      summarizedPG <- tmpTibblePg %>%
+        gather(selectedYearsC, key = "Year", value = "quotient") %>%
+        Rmisc::summarySE(measurevar = "quotient",
+                  groupvars = "Year",
+                  na.rm = TRUE)
+      
+      # print("summarizedPG=")
+      # print(summarizedPG)
+      
+    } # end of non-empty peerGroup-case
 
-      plt1 <- plt1 + 
-        geom_line(data = data4EachPeerCity_rawt, 
-                  aes(x = Year, y = quotient, 
-                      group = catgry, color = catgry),
-                  size=1) +
-        geom_point(data = data4EachPeerCity_rawt, 
-                   aes(x = Year, y = quotient, shape=catgry,
-                       color = catgry),
-                   size=3) 
+    # -------------------------------------------------------------------------
+    # additional step if the denominator option is selected
+    # calculating quotients for the selected city for selected years
+    # -------------------------------------------------------------------------
+    tmpMatrixScQ <- NULL
+    if (!is.null(checkedM)) {
+      # non-empty peer-group cases
+      if (useDenominator) {
+        tmpMatrixScQ <- data_sc_nm / data_sc_dm
+      } else{
+        tmpMatrixScQ <- data_sc_nm
+      }
       
     } else {
-      # single-year cases
-      plt1 <- plt1 +
-        geom_point(data = data4EachPeerCity_rawt,
-                   aes(x=Year, y= quotient, shape=catgry,
-                       color=catgry),
-                   size=3)
+      # empty peer-group case
+      
+      if (useDenominator) {
+        tmpMatrixScQ <- data_sc_nm / data_sc_dm
+      } else{
+        tmpMatrixScQ <- data_sc_nm
+        
+        
+        # print("tmpMatrixScQ=")
+        # print(tmpMatrixScQ)
+        # print("t(tmpMatrixScQ)[, 1]=")
+        # print(t(tmpMatrixScQ)[, 1])
+      }
+      
     }
 
-  }
-}
+
+    # last step: selected City
+    if (!is.null(checkedM)) {
+      # re-organize data with a rowname
+      data4plot_raw <- rbind(t(tmpMatrixScQ)[, 1], t(summarizedPG[, 3]))
+      rownames(data4plot_raw) <- c(baseCity, "Average")
+    } else {
+      # do nothing for no-peer-group case, 
+      # i.e., rendering the selected city only
+      data4plot_raw <- tmpMatrixScQ
+      
+      
+      # print("data4plot_raw=")
+      # print(data4plot_raw)
+
+    }
+
+    print("data4plot_raw=")
+    print(data4plot_raw)
+    
+    
+    #--------------------------------------------------------------------------
+    # additional steps before rendering 
+    #--------------------------------------------------------------------------
+    #
+    # step to convert rownames to a column whose name is catgry and
+    # transform it to tibble
+    data4plot <-
+      rownames_to_column(as.data.frame(data4plot_raw), var = "catgry") %>%
+      as_tibble()
+    
+    
+    print("data4plot:b=")
+    print(data4plot)
+    
+    
+    # step to handle the number of selected years is one, etc.
+    # 
+    # If # of years is 1, dynamically rename the column name 
+    # from the generic "V1" to the selected year such as "2022"
+    # for later plotting (labeling)
+    # 
+    if (ncol(data4plot) == 2) {
+
+      yr <- selectedYearsC[1]
+      # print(yr)
+      if (is.null(checkedM)) {
+        # do nothing
+      } else {
+        print("***** column is 2 *****")
+        # Note about the following coding in rename() function, "!!yr :="
+        # since the selected year is dynamically determined, i.e., 
+        # we cannot specify a particular year's value such as "2022" here
+        # and this notation is necessary
+        # see the following source:
+        # https://community.rstudio.com/t/pass-a-variable-to-dplyr-rename-to-change-columnname/6907
+        
+        data4plot <- data4plot %>% dplyr::rename(!!yr := "V1")
+      }
+      
+    } else {
+      print("***** column is not 2 *****")
+      print("ncol(data4plot)=")
+      print(ncol(data4plot))
+    }
+    print("data4plot:a=")
+    print(data4plot)
+    
+    
+    
+    # the following line fails if the number of years is 1
+    data4plot_sc <- data4plot %>%
+      gather(selectedYearsC, key = "Year", value = "quotient") %>%
+      filter(catgry == baseCity)
+    
+    print("data4plot_sc=")
+    print(data4plot_sc)
+    
+    if (!is.null(checkedM)) {
+      data4plot_pg <- data4plot %>%
+        gather(selectedYearsC, key = "Year", value = "quotient") %>%
+        filter(catgry != baseCity)
+      
+      
+      print("data4plot_pg=")
+      print(data4plot_pg)
+      
+      data4plot_pgx <-
+        data4plot_pg %>% add_column(ci = summarizedPG[["ci"]])
+      
+      print("data4plot_pgx=")
+      print(data4plot_pgx)
+      
+      # print("==================== end of data-prep for plot ==================")
+      
+    }
+    # -------------------------------------------------------------------------
+    # plotting
+    # -------------------------------------------------------------------------
+    # An if-block after ggplot() seems not to accept more than 1 geom_xxx
+    # statements within it and the following incremental approach was used
+    
+
+    # print("==================== beginning of plot ==================== ")
+    
+    # setting for using a custom google-font 
+    showtext_auto()
+    
+    # update the palette according to the current peer-group members
+    fixed_f_scale <-
+      scale_fill_manual(name = "Legend", values = pairedPalette[checkedM])
+    fixed_c_scale <-
+      scale_color_manual(name = "Legend", values = pairedPalette[checkedM])
+    fixed_s_scale <-
+      scale_shape_manual(name = "Legend", values = shapeNoList[checkedM])
+    
+    # baseline rendering
+    # This block generates the bar plot for the base city
+    plt1 <- data4plot_sc %>%
+      ggplot() +
+      geom_col(aes(x = Year, y = quotient, fill = catgry)) +
+      scale_y_continuous(name = "Value", labels = comma) +
+      scale_fill_manual(name = "Base", values = c("#B3B3B3"))
+    
+    # incremetally adding optional items
+    # collective average line instead of individual lines for the peer-group 
+    # also overlaying points
+    if (input$selectAvg) {
+      # print("extra-step for adding average")
+      # add an average line
+      plt1 <- plt1 +
+        geom_line(
+          data = data4plot_pg,
+          aes(
+            x = Year,
+            y = quotient,
+            group = catgry,
+            color = catgry
+          ),
+          size = 1
+        ) +
+        geom_point(
+          data = data4plot_pg,
+          aes(
+            x = Year,
+            y = quotient,
+            group = catgry,
+            color = catgry
+          ),
+          size = 3
+        )
+      # handling the CI-error-bar option
+      if (input$selectCI) {
+        # print("data4plot_pgx=")
+        # print(data4plot_pgx)
+        # add CI-bands
+        plt1 <- plt1 + geom_errorbar(
+          data = data4plot_pgx,
+          aes(
+            x = Year,
+            y = quotient,
+            ymin = quotient - ci,
+            ymax = quotient + ci
+          ),
+          width = .1,
+          color = "#696969",
+          position = position_dodge(0.1)
+        )
+      }
+      
+      
+    } else {
+      # each comparison municipality's line is added
+      # tibble to be used
+      # print("no average, etc.")
+      
+      if (!is.null(checkedM)) {
+        if (length(selectedYearsC) > 1) {
+          # multiple years => lines 
+          
+          # print("data4EachPeerCity_rawt=")
+          # print(data4EachPeerCity_rawt)
+          # print("data4EachPeerCity_rawt$catgry=")
+          # print(data4EachPeerCity_rawt$catgry)
+          # print("levels(data4EachPeerCity_rawt$catgry)=")
+          # print(levels(data4EachPeerCity_rawt$catgry))
+          
+          plt1 <- plt1 +
+            geom_line(
+              data = data4EachPeerCity_rawt,
+              aes(
+                x = Year,
+                y = quotient,
+                group = catgry,
+                color = catgry
+              ),
+              size = 1
+            ) +
+            geom_point(
+              data = data4EachPeerCity_rawt,
+              aes(
+                x = Year,
+                y = quotient,
+                shape = catgry,
+                color = catgry
+              ),
+              size = 3
+            )
+          
+        } else {
+          # single-year => points
+          plt1 <- plt1 +
+            geom_point(
+              data = data4EachPeerCity_rawt,
+              aes(
+                x = Year,
+                y = quotient,
+                shape = catgry,
+                color = catgry
+              ),
+              size = 3
+            )
+        }
+        
+      }
+    }
 
 
-print("numerator=")
-print(input$selectedVar4num)
-print("numerator's name(label) check=")
-print("v2lallinOne[[input$selectedVar4num]]=")
-print(v2lallinOne[[input$selectedVar4num]])
-metricVarLabel <- v2lallinOne[[input$selectedVar4num]]
-#  names(srv2varlbllst[[input$selectedService]])[which(srv2varlbllst[[input$selectedService]]== input$selectedVar4num)]
-metricVarLabel<- stringr::str_wrap(metricVarLabel, width = 80)
-print(metricVarLabel)
-  
-# print("varset4denominator=") 
-# print(varset4denominator)
-print("denominator=")
-print(input$selectedVar4denom)
-print("name check: denominator: input$selectedVar4denom=")
-print("current input$selectedService is=")
-print(input$selectedService)
-contextVarLabel <- v2lallinOne[[input$selectedVar4denom]]
-contextVarLabel <- stringr::str_wrap(contextVarLabel, width = 80)
-print("contextVarLabel=")
-print(contextVarLabel)
-
-if (useDenominator){
-  print("use denominator case: variable-name")
-  contextVarLabel <- paste("\n/",contextVarLabel)
-} else{
-  print("no denominator case: use blank")
-  contextVarLabel<-""
-}
+    # print("numerator=")
+    # print(input$selectedVar4num)
+    # print("numerator's name(label) check=")
+    # print("v2lallinOne[[input$selectedVar4num]]=")
+    # print(v2lallinOne[[input$selectedVar4num]])
 
 
-titleText <- paste(c("" , 
-                     metricVarLabel,  contextVarLabel), collapse = "")
-print("titleText=")
-print(titleText)
+    # numerator(metric) variable name: full
+    metricVarLabel <- stringr::str_wrap(v2lallinOne[[input$selectedVar4num]], 
+                                        width = 80)
+    # print(metricVarLabel)
+    
 
+    # print("denominator=")
+    # print(input$selectedVar4denom)
+    # print("name check: denominator: input$selectedVar4denom=")
+    # print("current input$selectedService is=")
+    # print(input$selectedService)
+    
+    # denominator(context) variable name: full
 
-print("multiplier=")
-print(input$selectMultiplier)
-multiplierValue <- as.character( 10^as.integer(input$selectMultiplier) )
+    # print("no denominator case: use blank")
+    contextVarLabel <- ""
+    if (useDenominator) {
+      # print("use denominator case: variable-name")
+      contextVarLabel <- paste("\n/",
+        stringr::str_wrap(v2lallinOne[[input$selectedVar4denom]], width = 80))
+    }
+    # print("contextVarLabel=")
+    # print(contextVarLabel)
 
-
-peerGroupList <-""
-if (!is.null(checkedM)) {
-  peerGroupList <- paste(checkedM,collapse=", ")
-  # peerGroupList <- paste(updatedPeerGroup, collapse = ", ")
-  peerGroupList <- stringr::str_wrap(peerGroupList, width = 80)
-}
-
-
-subtitleText <-paste(c("Base Municipality: ",input$selectedCity,
-                      "\nService: ",  serviceNameFull,
-                      "\nComparison Municipalities: ", peerGroupList,
-                      "\nMultiplier: ", multiplierValue,
-                      "\n\nData upated on: 2022-11-22"
-                      ), 
-                      collapse = "")
-print("subtitleText=")
-print(subtitleText)
-
-
-# default page layout
-paperWidth<-10
-paerHeight<-8.5
-
-
-if (input$selectPageLayout == 0){
-  # portrait case
-  print("portrait request")
-  paperWidth<-8.5
-  paerHeight<-10
-}
-print("paperWidth=")
-print(paperWidth)
-print("paerHeight=")
-print(paerHeight)
-# ========================================================================
-# furnish the graph with its title, etc.
-# ========================================================================
-# 
-# adding title/caption data
-if (input$selectAvg){
-  
-  plt1 <- plt1 +  labs(
-    title=titleText, 
-    subtitle = msg_no_base_m_data,
-    caption = subtitleText
+    # title 
+    titleText <- paste(c("" ,
+                         metricVarLabel,  contextVarLabel), collapse = "")
+    # print("titleText=")
+    # print(titleText)
+    
+    
+    # print("multiplier=")
+    # print(input$selectMultiplier)
+    multiplierValue <-
+      as.character(10 ^ as.integer(input$selectMultiplier))
+    
+    
+    peerGroupList <- ""
+    if (!is.null(checkedM)) {
+      peerGroupList <- stringr::str_wrap(
+        paste(checkedM, collapse = ", ")
+        , width = 80)
+    }
+    
+    
+    subtitleText <- paste(
+      c(
+        "Base Municipality: ",
+        baseCity,
+        "\nService: ",
+        serviceNameFull,
+        "\nComparison Municipalities: ",
+        peerGroupList,
+        "\nMultiplier: ",
+        multiplierValue,
+        "\n\nData upated on: November 22, 2022"
+      ),
+      collapse = ""
     )
-  
-  
-} else {
-  # no average line
-plt1 <- plt1 +  labs(
-    title=titleText, 
-    subtitle = msg_no_base_m_data,
-    caption = subtitleText)
-}
+    # print("subtitleText=")
+    # print(subtitleText)
+    
+    # default page layout
+    paperWidth <- 10
+    paerHeight <- 8.5
 
-# text-tweaking, etc.
-if (input$selectAvg){
-  
-  plt1 <- plt1 +
-    fixed_c_scale+
-  scale_color_discrete(name = "Legend", 
-  labels = c("average of \ncomparison \nmunicipalities")) +
-  
-  
-  
-  # fixed_c_scale+
-  #   fixed_s_scale+
-    theme_bw() +
-    theme(plot.title =   element_text(family = "barlow", size=22, vjust = 5),
-          plot.subtitle = element_text(family = "barlow",
-                                       size = 20,
-                                       color = "red"),
+
+    if (input$selectPageLayout == 0) {
+      # portrait case
+      # print("portrait request")
+      paperWidth <- 8.5
+      paerHeight <- 10
+    }
+    
+    
+    # print("paperWidth=")
+    # print(paperWidth)
+    # print("paerHeight=")
+    # print(paerHeight)
+    
+    
+    # -------------------------------------------------------------------------
+    # furnish the graph with its title, etc.
+    # -------------------------------------------------------------------------
+    
+    # adding title/caption data
+    if (input$selectAvg) {
+      # with the average line
+      plt1 <- plt1 +  labs(title = titleText,
+                           subtitle = msg_no_base_m_data,
+                           caption = subtitleText)
+    } else {
+      # no average line
+      plt1 <- plt1 +  labs(title = titleText,
+                           subtitle = msg_no_base_m_data,
+                           caption = subtitleText)
+    }
+
+    # text-tweaking, etc.
+    if (input$selectAvg) {
+      # with the average line
+      plt1 <- plt1 +
+        fixed_c_scale +
+        scale_color_discrete(name = "Legend",
+                             labels = c("average of \ncomparison \nmunicipalities")) +
+        
+        # fixed_c_scale+
+        #   fixed_s_scale+
+        theme_bw() +
+        theme(
+          plot.title =   element_text(
+            family = "barlow",
+            size = 22,
+            vjust = 5
+          ),
+          plot.subtitle = element_text(
+            family = "barlow",
+            size = 20,
+            color = "red"
+          ),
           plot.margin =  margin(t = 40, l = 20),
-          plot.caption = element_text(family = "barlow",
-                                      size = 12,
-                                      hjust = 0),
+          plot.caption = element_text(
+            family = "barlow",
+            size = 12,
+            hjust = 0
+          ),
           legend.title = element_text(family = "barlow", size = 18),
           legend.text =  element_text(family = "barlow", size = 14),
           axis.title.y = element_blank(),
           axis.title.x =  element_text(family = "barlow", size = 14),
           axis.text.y =   element_text(family = "barlow", size = 12),
           axis.text.x =   element_text(family = "barlow", size = 12)
-    )+ 
-    guides(color = guide_legend(order=1),shape = guide_legend(order=1), 
-           fill = guide_legend(order=2))
-} else {
-plt1 <- plt1 +
-  fixed_c_scale+
-  fixed_s_scale+
-  theme_bw() +
-  theme(plot.title =   element_text(family = "barlow", size=22, vjust = 5),
-        plot.subtitle = element_text(family = "barlow",
-                                     size = 20,
-                                     color = "red"),
-        plot.margin =  margin(t = 40, l = 20),
-        plot.caption = element_text(family = "barlow",
-                                    size = 12,
-                                    hjust = 0),
-        legend.title = element_text(family = "barlow", size = 18),
-        legend.text =  element_text(family = "barlow", size = 14),
-        axis.title.y = element_blank(),
-        axis.title.x =  element_text(family = "barlow", size = 14),
-        axis.text.y =   element_text(family = "barlow", size = 12),
-        axis.text.x =   element_text(family = "barlow", size = 12)
-) + 
-  guides(color = guide_legend(order=1), shape = guide_legend(order=1),
-         fill = guide_legend(order=2))
+        ) +
+        guides(
+          color = guide_legend(order = 1),
+          shape = guide_legend(order = 1),
+          fill = guide_legend(order = 2)
+        )
+    } else {
+      # without the average line
+      plt1 <- plt1 +
+        fixed_c_scale +
+        fixed_s_scale +
+        theme_bw() +
+        theme(
+          plot.title =   element_text(
+            family = "barlow",
+            size = 22,
+            vjust = 5
+          ),
+          plot.subtitle = element_text(
+            family = "barlow",
+            size = 20,
+            color = "red"
+          ),
+          plot.margin =  margin(t = 40, l = 20),
+          plot.caption = element_text(
+            family = "barlow",
+            size = 12,
+            hjust = 0
+          ),
+          legend.title = element_text(family = "barlow", size = 18),
+          legend.text =  element_text(family = "barlow", size = 14),
+          axis.title.y = element_blank(),
+          axis.title.x =  element_text(family = "barlow", size = 14),
+          axis.text.y =   element_text(family = "barlow", size = 12),
+          axis.text.x =   element_text(family = "barlow", size = 12)
+        ) +
+        guides(
+          color = guide_legend(order = 1),
+          shape = guide_legend(order = 1),
+          fill = guide_legend(order = 2)
+        )
+      
+    }
 
-}
+    # saving the PDF version for a downloading request
+    
+    ggsave(
+      filename = tempPDFfile,
+      plot =  plt1,
+      device = cairo_pdf,
+      width = paperWidth,
+      height = paerHeight,
+      units = "in"
+    )
+    
+    # base::message("= renderPlotly: END ==========================================")
+    # base::message("rquest endtime=", as.POSIXct(Sys.time(), tz = "EST5EDT"))
+    
+    plt1
 
-# saving the PDF version for a downloading request
-
-ggsave(filename = tempPDFfile, plot =  plt1, device = cairo_pdf, 
-       width = paperWidth, 
-       height = paerHeight, units = "in")
-
-base::message("= renderPlotly: END ==========================================")
-base::message("rquest endtime=",as.POSIXct(Sys.time(), tz = "EST5EDT"))
-
-plt1
-# hide plotly's modebar
-#ggplotly(plt1) %>% config(displayModeBar = FALSE)
 }) # end of tab 1's plot
   
 
 # ------------------------------------------------------------------------------
-output$downloadGraph <- downloadHandler(
-
-  filename = function(){
-    "graph.pdf"
-  }, 
-  content = function(file) {
-    file.copy(tempPDFfile, file, overwrite = TRUE)
-  }
-)
+  output$downloadGraph <- downloadHandler(
+    filename = function() {
+      "graph.pdf"
+    },
+    content = function(file) {
+      file.copy(tempPDFfile, file, overwrite = TRUE)
+    }
+  )
 # ------------------------------------------------------------------------------
 } # end of server
 
