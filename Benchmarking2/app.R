@@ -11,201 +11,224 @@ library(shinyWidgets)
 ################################################################################
 ui <- fluidPage(
   shinyFeedback::useShinyFeedback(),
-#  shinythemes::themeSelector(),
+  #  shinythemes::themeSelector(),
   shinyjs::useShinyjs(),
-  tags$head(
-    includeCSS("www/css/barlow-semi-condensed.css"),
-    tags$style(HTML("
+  
+  # The following css setting was ignored by ggplot2
+  # includeCSS("www/css/barlow-semi-condensed.css"),
+  
+  # The following setting was ignored by ggplot2
+  # gfonts::use_font(
+  #   id = "barlow-semi-condensed",
+  #   css_path = file.path("www", "css/barlow-semi-condensed.css")
+  # ),
+  
+  #
+  tags$head(# tags$link(rel = "stylesheet", type = "text/css",
+    #           # href = "www/css/barlow-semi-condensed.css"),
+    tags$style(
+      HTML(
+        "
     .shiny-output-error-validation {
     color: red;
     font-size: 16px
     }
     #goButton{
     margin-bottom: 20px;}
-    "))
-  ),
+    "
+      )
+    )),
   
   
   
   titlePanel("Benchmarking 2.0"),
-
   
+  # sidebarLayout = mainPanel + sidebarPanel
   sidebarLayout(
-    
-###############################################################################
-# main panel 
-###############################################################################
-    mainPanel(
+    ###########################################################################
+    # main panel
+    ###########################################################################
+    mainPanel(tabsetPanel(
+      type = "tabs",
+      tabPanel(
+        "Home",
+        br(),
+        htmlOutput(outputId = "initialMessage",
+                   container = h3),
+        
+        plotOutput(outputId = "benchmarkingDB"),
+        
+      ),
       
-      tabsetPanel(
-        type = "tabs",
-        tabPanel("Home",
-                 br(),
-                 htmlOutput(outputId="initialMessage",
-                          container = h3),
-
-                 plotOutput(outputId= "scatterplot" ),
-
-                 ),
-
-        tabPanel("About",
-          tags$h3(
-            "Benchmarking 2.0: Project Overview"),
-          
-          tags$p("Established in 1995, the North Carolina Benchmarking Project ",
-                 "allows municipalities to compare their service ", 
-"and performance trends with other participating units.",  
-"Benchmarking 2.0, launched in 2022",
-"streamlines data collection and analysis and ",
-"expands opportunities for robust peer-to-peer conversations and best-practice development."
-          )
+      tabPanel(
+        "About",
+        tags$h3("Benchmarking 2.0: Project Overview"),
+        
+        tags$p(
+          "Established in 1995, the North Carolina Benchmarking Project ",
+          "allows municipalities to compare their service ",
+          "and performance trends with other participating units.",
+          "Benchmarking 2.0, launched in 2022",
+          "streamlines data collection and analysis and ",
+          "expands opportunities for robust peer-to-peer conversations ",
+          "and best-practice development."
         )
       )
-      
-
-    ),
+    )),
     
-###############################################################################
-# side panel
-###############################################################################
-sidebarPanel(
+    ###########################################################################
+    # side panel
+    ###########################################################################
+    sidebarPanel(
+      # select a base city
+      selectInput(
+        inputId = 'selectedCity',
+        label = 'Select base municipality',
+        choices = c(citylabel)
+      ),
+      
+      # select comparison municipalities
+      pickerInput(
+        inputId = "peerGroup",
+        label = "Select comparison municipalities",
+        choices = rvllabel,
+        selected = rvllabel,
+        multiple = TRUE,
+        options = list(
+          `actions-box` = TRUE,
+          `virtualScroll` = (length(citylabel) - 1)
+        )
+      ),
+      
+      # select years
+      pickerInput(
+        inputId = "selectedYears",
+        label = "Select years",
+        choices = y_list,
+        selected = y_list,
+        multiple = TRUE,
+        options = list(# `actions-box` = TRUE,
+          `virtualScroll` = length(y_list))
+      ),
+      
+      
+      
+      # Button that submit the above choice of base/comparison municipalities
+      actionButton("goButton", "Submit"),
+      
+      
+      
+      
+      # select a service
+      selectInput(
+        inputId = 'selectedService',
+        label = 'Select service',
+        choices = srvclngToShrtRefLstWoc,
+        selected = srvclngToShrtRefLstWoc[1]
+      ),
+      
+      
+      
+      
+      
+      
+      # select a numerator(metric) variable:pulldown menu
+      selectInput(
+        inputId = 'selectedVar4num',
+        label = 'Select service metric',
+        choices = c(srv2varlbllst[["amr"]]),
+        #selected = initialNumeratorValue
+        selected = c()
+      ),
+      
+      # show/hide the denominator-pane
+      checkboxInput(
+        inputId = 'selectedUseDenominator',
+        label = 'Use denominator|context Variable',
+        value = FALSE
+      ),
+      
+      # the denominator pane
+      conditionalPanel(
+        condition = "input.selectedUseDenominator == true",
+        
+        # select a denominator variable: pulldwon menu
+        selectInput(
+          inputId = 'selectedVar4denom',
+          label = 'Select denominator/context variable',
+          choices = c()
+        )
+      ),
+      
+      
+      # select a multiplier
+      
+      radioButtons(
+        inputId = "selectMultiplier",
+        label = "Select a multiplier",
+        choices = list(
+          "None" = 0,
+          "x 100" = 2,
+          "x 100K" = 5,
+          "x 1M" = 6
+        ),
+        selected = 0
+      ),
+      
+      
+      # add the Average line or not
+      checkboxInput(
+        inputId = "selectAvg",
+        label = "Average of comparison municipalities",
+        value = FALSE
+      ),
+      
+      # show/hide the CI-panel and add CIs or not
+      conditionalPanel(
+        condition = "input.selectAvg == true",
+        checkboxInput(
+          inputId = "selectCI",
+          label = "Add confidence interval (95%)",
+          value = FALSE
+        )
+      ),
+      
+      # Graph-Downloading button
+      # downloadButton('downloadGraph'),
+      downloadButton('dwonloadImage'),
+      
+      # radio-button for page layout
+      radioButtons(
+        inputId = "selectPageLayout",
+        label = "Select page layout",
+        choices = list("Portrait" = 0, "Landscape" = 1),
+        selected = 1
+      )
+      
+      
+    ) # sidePanel
+    
+    
+    
+    
+  ) # sidebarLayout
   
-# select a base city
-selectInput(inputId='selectedCity', 
-              label='Select base municipality', 
-              choices=c(citylabel)
-              ),
-
-# select comparison municipalities
-pickerInput(
-  inputId = "peerGroup",
-  label = "Select comparison municipalities", 
-  choices = rvllabel,
-  selected = rvllabel,
-  multiple = TRUE,
-  options = list(
-    `actions-box` = TRUE,
-    `virtualScroll` = (length(citylabel)-1))
-),
-
-# select years
-pickerInput(
-  inputId = "selectedYears",
-  label = "Select years", 
-  choices = y_list,
-  selected = y_list,
-  multiple = TRUE,
-  options = list(
-    # `actions-box` = TRUE,
-    `virtualScroll` = length(y_list))
-),
-
-
-
-# Button that submit the above choice of base/comparison municipalities
-actionButton("goButton", "Submit"),
-
-
-
-
-# select a service 
-selectInput(inputId='selectedService', 
-            label='Select service', 
-            choices=srvclngToShrtRefLstWoc,
-            selected = srvclngToShrtRefLstWoc[1] ), 
-
-
-
-
-
-
-# select a numerator(metric) variable:pulldown menu
-selectInput(inputId='selectedVar4num', 
-            label = 'Select service metric', 
-            choices = c(srv2varlbllst[["amr"]]),
-            #selected = initialNumeratorValue
-            selected = c()
-            ),
-
-# show/hide the denominator-pane
-checkboxInput(inputId='selectedUseDenominator', 
-              label = 'Use denominator|context Variable', 
-              value = FALSE),
-
-# the denominator pane
-conditionalPanel(
-  condition = "input.selectedUseDenominator == true",
-
-# select a denominator variable: pulldwon menu
-selectInput(inputId='selectedVar4denom', 
-            label = 'Select denominator/context variable', 
-            choices = c()
-            )
-),
-
-
-# select a multiplier
-
-radioButtons(inputId = "selectMultiplier", 
-              label = "Select a multiplier", 
-              choices = list("None"=0, "x 100"=2, 
-               "x 100K"=5, "x 1M"=6),
-              selected=0),
-
-
-# add the Average line or not
-checkboxInput(inputId ="selectAvg", 
-              label= "Average of comparison municipalities",
-              value=FALSE),
-
-# show/hide the CI-panel and add CIs or not
-conditionalPanel(
-    condition = "input.selectAvg == true",
-    checkboxInput(inputId ="selectCI", 
-                label= "Add confidence interval (95%)",
-                value=FALSE
-    )
-),
-
-# Graph-Downloading button 
-downloadButton('downloadGraph'),
-
-# radio-button for page layout
-radioButtons(inputId = "selectPageLayout", 
-             label = "Select page layout", 
-             choices = list("Portrait"=0, "Landscape"=1),
-             selected=1)
-
-
-)
-
-
-
-
-) # sidebarLayout
-
 ) # fluidPage
 
-################################################################################
+###############################################################################
 # server definition
-################################################################################
+###############################################################################
 
 server <- function(input, output, session) {
   
-
-#------------------------------------------------------------------------------
-# observeEvent blocks 
-#------------------------------------------------------------------------------
-# select-all or not peer group
-
-
-  
-
-
   
   
-  
+  #----------------------------------------------------------------------------
+  # observeEvent blocks
+  #----------------------------------------------------------------------------
+
   # behavior of comparison municipalities' checkbox group
+  # 
   # (1) this block deals with "all cities" to "some cities" transition
   # uncheck the selectAllpeer box
   # (2) When there is still one checked box, the average-option checkbox
@@ -252,28 +275,26 @@ server <- function(input, output, session) {
     }
   })
 
-#------------------------------------------------------------------------------
-# other input fields
-#------------------------------------------------------------------------------
-
-
-# selection of a service
-# affects the set of service metrics and its selected one
 
   
-  
-# updating the set of numerators (service metrics)
-# 
-# trigger: whenever the current service has been updated, i.e.,
-# when a user made a new choice, the set of service metrics must be updated
-#
-# side-effects: a change to this UI component is self-contained
-# this change in service must be propagated to 
-# related UI parts: the current set of 
+  # selection of a service
+  # affects the set of service metrics and its selected one
   
   
-# city-invoked side-effects
-# change of city should not affect service and variables
+  
+  # updating the set of numerators (service metrics)
+  #
+  # trigger: whenever the current service has been updated, i.e.,
+  # when a user made a new choice, the set of service metrics must be updated
+  #
+  # side-effects: a change to this UI component is self-contained
+  # this change in service must be propagated to
+  # related UI parts: the current set of
+  
+  
+  # A-change-of-the-base-city-invoked side-effects
+  # the peer-group's membership must be updated as the base-city changes
+  # However, a change of the base city should not affect service and variables
   
   observeEvent(input$selectedCity, {
     
@@ -305,8 +326,8 @@ server <- function(input, output, session) {
   
   
   
-# service-invoked side-effects
-  # change in service => 
+  # a-change-of-service-invoked side-effects
+  # a change in service => 
   # 1. switch a list of a set of vars(varset4numerator)
   # 2. set the selected var to the first of the above new list
   # a change in input$selectedVar4num does not affect its service
@@ -358,8 +379,9 @@ server <- function(input, output, session) {
   
   
   # The behavior of the numerator set
+  # 
   # This check is meaningful when the denominator option is on;
-  # when the denomintor-option is not used, there is no need to 
+  # when the denominator-option is not used, there is no need to 
   # update the list of denominator variables
   # 
   # When the denominator-option is on, 
@@ -380,6 +402,7 @@ server <- function(input, output, session) {
     
     
     if (input$selectedUseDenominator) {
+      # denominator-option is on
       
       # print("input$selectedVar4denom=")
       # print(input$selectedVar4denom)
@@ -401,7 +424,9 @@ server <- function(input, output, session) {
       # print(varset4denominator)
 
       
-      # denominator is on
+      # checking new numerator variable and old denominator one
+      # new numerator == current denominator
+      # denominator must be updated
       if (input$selectedVar4num == input$selectedVar4denom) {
         
         # print("numerator is the previously selected denominator")
@@ -425,7 +450,7 @@ server <- function(input, output, session) {
       }
       
     } else {
-      # denominator is off
+      # denominator-option is off
       # do nothing
       # print("denominator is off; do nothing here")
     }
@@ -436,9 +461,7 @@ server <- function(input, output, session) {
   
   
   
-  # This block prepares the denominator Ui 
-  # 
-  # 
+  # This block shows/hides the denominator UI pane 
   # 
   observeEvent(input$selectedUseDenominator, {
     
@@ -489,20 +512,17 @@ server <- function(input, output, session) {
   #   
   # })
   
-# when the checkbox of denominator|context var is turned off,
-# chart returns to normal   
+  # when the checkbox of denominator|context var is turned off,
+  # chart returns to normal   
   observeEvent(input$selectedUseDenominator,{
     if (input$selectedUseDenominator){
       updateRadioButtons(inputId = "selectMultiplier", selected = 2)
     } else {
       updateRadioButtons(inputId = "selectMultiplier", selected = 0)
     }
-    
-    
-    
   })
   
-# years UI: avoid the no-selection case
+  # years UI: Must warn the no-selection case
   observeEvent(input$selectedYears,{
     
     # message("\n\nwithin observeEvent: input$selectedYears")
@@ -511,11 +531,12 @@ server <- function(input, output, session) {
     
     if (length(input$selectedYears) == 0){
       
-      # 
+      # issue the warning message
       validate("Please select at least one year!")
 
       # message("no-year-selected state: the last year will be selected")
-
+      
+      # The following updatePickerInput() is not working for some unknown reason
       updatePickerInput(session=session, 
         inputId = "selectedYears",
         choices = c(y_list),
@@ -526,15 +547,16 @@ server <- function(input, output, session) {
       
       
     } else {
+      # do nothing 
       # shinyFeedback::hideFeedback("selectedYears")
     }
 
   })
   
 
-###############################################################################
-# renderText(): generating the first-time-only session-starting message
-###############################################################################
+  #############################################################################
+  # renderText(): generating the first-time-only session-starting message
+  #############################################################################
   output$initialMessage <- renderText({
     if (input$goButton == 0) {
       HTML(paste(
@@ -552,19 +574,14 @@ server <- function(input, output, session) {
     
   })
   
-###############################################################################
-# renderPlot(): generating the benchmarking plot 
-###############################################################################
 
-  
-  
-  # for saving a PDF-file
-  tempPDFfile <-tempfile()
-  
-  output$scatterplot <- renderPlot({  
+  #############################################################################
+  # benchmarking-plot-generating function 
+  #############################################################################
+  benchmarking_plot <- reactive({
 
     # base::message("= renderPlotly: START ==================================")
-    # base::message("output$scatterplot: start-time=", 
+    # base::message("output$benchmarkingplot: start-time=", 
     # as.POSIXct(Sys.time(), tz = "EST5EDT"))
     # 
 
@@ -575,7 +592,8 @@ server <- function(input, output, session) {
     # it is now collectively updated by clicking the Submit button and 
     # isolate() is used here
     checkedM <- isolate(input$peerGroup)
-    
+    print("input$peerGroup: checkedM=")
+    print(checkedM)
     
     # The first-time handling when the Submit button has nothing to submit
     if (input$goButton == 0){
@@ -637,8 +655,8 @@ server <- function(input, output, session) {
     # name
 
 
-    # print("selected Service=")
-    # print(input$selectedService)
+    print("selected Service=")
+    print(input$selectedService)
 
 
     
@@ -648,19 +666,19 @@ server <- function(input, output, session) {
     # print("full service name=")
     # print(serviceNameFull)
     
-    # print("currently selected numerator=")
-    # print(input$selectedVar4num)
+    print("currently selected numerator=")
+    print(input$selectedVar4num)
 
 
     # define a coding-friendly var for the denominator-option switch
     useDenominator <- FALSE
     if (input$selectedUseDenominator) {
       useDenominator <- TRUE
-      # print("A case of using a denominator")
+      print("A case of using a denominator")
       # print(input$selectedUseDenominator)
       
-      # print("current denominator=")
-      # print(input$selectedVar4denom)
+      print("current denominator=")
+      print(input$selectedVar4denom)
       
     } else {
       # print("This request does not use a denominator")
@@ -682,8 +700,8 @@ server <- function(input, output, session) {
     selectedYearsC <- as.character(input$selectedYears)
     
     # 
-    # print("selectedYearsC=")
-    # print(selectedYearsC)
+    print("selectedYearsC=")
+    print(selectedYearsC)
 
     
     
@@ -704,10 +722,10 @@ server <- function(input, output, session) {
       distinct(Municipality) %>%
       pull()
     
-    # print("valueAvailableCities=")
-    # print(valueAvailableCities)
-    # print("selected city=")
-    # print(baseCity)
+    print("valueAvailableCities=")
+    print(valueAvailableCities)
+    print("selected city=")
+    print(baseCity)
 
     msg_no_base_m_data <- ""
     if (is.na(match(baseCity, valueAvailableCities))) {
@@ -830,8 +848,6 @@ server <- function(input, output, session) {
       
       
     }
-    #--------------------------------------------------------------------------
-    
 
 
     # -------------------------------------------------------------------------
@@ -891,6 +907,7 @@ server <- function(input, output, session) {
       # print(data_pg_nm)
       
     }
+    
     # -------------------------------------------------------------------------
     # step 4: peer-group's denominator if the denominator option is selected
     # -------------------------------------------------------------------------
@@ -918,6 +935,7 @@ server <- function(input, output, session) {
         # print(data_pg_dm)
       }
     }
+    
     # -------------------------------------------------------------------------
     # additional step if the denominator option is selected
     # calculating a quotient for the peer-group for selected years
@@ -1319,30 +1337,13 @@ server <- function(input, output, session) {
         peerGroupList,
         "\nMultiplier: ",
         multiplierValue,
+        paste("\ngenerated at: ", as.character(Sys.time(), usetz=TRUE), sep=""),
         "\n\nData upated on: November 22, 2022"
       ),
       collapse = ""
     )
     # print("subtitleText=")
     # print(subtitleText)
-    
-    # default page layout
-    paperWidth <- 10
-    paerHeight <- 8.5
-
-
-    if (input$selectPageLayout == 0) {
-      # portrait case
-      # print("portrait request")
-      paperWidth <- 8.5
-      paerHeight <- 10
-    }
-    
-    
-    # print("paperWidth=")
-    # print(paperWidth)
-    # print("paerHeight=")
-    # print(paerHeight)
     
     
     # -------------------------------------------------------------------------
@@ -1362,113 +1363,107 @@ server <- function(input, output, session) {
                            caption = subtitleText)
     }
 
-    # text-tweaking, etc.
+    # The average-option-related special processing
     if (input$selectAvg) {
       # with the average line
       plt1 <- plt1 +
         fixed_c_scale +
-        scale_color_discrete(name = "Legend",
-                             labels = c("average of \ncomparison \nmunicipalities")) +
-        
-        # fixed_c_scale+
-        #   fixed_s_scale+
-        theme_bw() +
-        theme(
-          plot.title =   element_text(
-            family = "barlow",
-            size = 22,
-            vjust = 5
-          ),
-          plot.subtitle = element_text(
-            family = "barlow",
-            size = 20,
-            color = "red"
-          ),
-          plot.margin =  margin(t = 40, l = 20),
-          plot.caption = element_text(
-            family = "barlow",
-            size = 12,
-            hjust = 0
-          ),
-          legend.title = element_text(family = "barlow", size = 18),
-          legend.text =  element_text(family = "barlow", size = 14),
-          axis.title.y = element_blank(),
-          axis.title.x =  element_text(family = "barlow", size = 14),
-          axis.text.y =   element_text(family = "barlow", size = 12),
-          axis.text.x =   element_text(family = "barlow", size = 12)
-        ) +
-        guides(
-          color = guide_legend(order = 1),
-          shape = guide_legend(order = 1),
-          fill = guide_legend(order = 2)
-        )
+        scale_color_discrete(
+          name = "Legend",
+          labels = c("average of \ncomparison \nmunicipalities")
+          )
+      
     } else {
       # without the average line
       plt1 <- plt1 +
         fixed_c_scale +
-        fixed_s_scale +
-        theme_bw() +
-        theme(
-          plot.title =   element_text(
-            family = "barlow",
-            size = 22,
-            vjust = 5
-          ),
-          plot.subtitle = element_text(
-            family = "barlow",
-            size = 20,
-            color = "red"
-          ),
-          plot.margin =  margin(t = 40, l = 20),
-          plot.caption = element_text(
-            family = "barlow",
-            size = 12,
-            hjust = 0
-          ),
-          legend.title = element_text(family = "barlow", size = 18),
-          legend.text =  element_text(family = "barlow", size = 14),
-          axis.title.y = element_blank(),
-          axis.title.x =  element_text(family = "barlow", size = 14),
-          axis.text.y =   element_text(family = "barlow", size = 12),
-          axis.text.x =   element_text(family = "barlow", size = 12)
-        ) +
-        guides(
-          color = guide_legend(order = 1),
-          shape = guide_legend(order = 1),
-          fill = guide_legend(order = 2)
-        )
-      
+        fixed_s_scale
     }
-
-    # saving the PDF version for a downloading request
     
-    ggsave(
-      filename = tempPDFfile,
-      plot =  plt1,
-      device = cairo_pdf,
-      width = paperWidth,
-      height = paerHeight,
-      units = "in"
-    )
+    # common legend-related settings
+    plt1 <- plt1 +
+      theme_bw() +
+      theme(
+        text = element_text(family = "barlow"),
+        plot.title =   element_text(size = 22,
+                                    vjust = 5),
+        plot.subtitle = element_text(size = 20,
+                                     color = "red"),
+        plot.margin =  margin(t = 40, l = 20),
+        plot.caption = element_text(size = 12,
+                                    hjust = 0),
+        legend.title = element_text(size = 18),
+        legend.text =  element_text(size = 14),
+        axis.title.y = element_blank(),
+        axis.title.x =  element_text(size = 14),
+        axis.text.y =   element_text(size = 12),
+        axis.text.x =   element_text(size = 12)
+      ) +
+      guides(
+        color = guide_legend(order = 1),
+        shape = guide_legend(order = 1),
+        fill = guide_legend(order = 2)
+      )
+    
+    
     
     # base::message("= renderPlotly: END ==========================================")
     # base::message("rquest endtime=", as.POSIXct(Sys.time(), tz = "EST5EDT"))
     
     plt1
 
-}) # end of tab 1's plot
+}) # end of tab 1's plot-generation function
+  
+  
+  #############################################################################
+  # renderPlot(): generating the benchmarking plot
+  #############################################################################  
+  output$benchmarkingDB <- renderPlot({
+    print(benchmarking_plot())
+  })
+  
+  
+  
+  
+  #############################################################################
+  # downloading the current benchmarking graph as a PDF file
+  #############################################################################
+  output$dwonloadImage <- downloadHandler(
+    filename = function(){
+      pdf_file_name <-paste(tempfile(), ".pdf", sep = "")
+      print("pdf_file_name=");print(pdf_file_name)
+      pdf_file_name
+    },
+    content = function(file){
+      
+      
+      if (input$selectPageLayout == 0) {
+        # portrait case
+        # print("portrait request")
+        paperWidth <- 8.5
+        paerHeight <- 10
+      }
+      
+      
+      # print("paperWidth=")
+      # print(paperWidth)
+      # print("paerHeight=")
+      # print(paerHeight)
+      
+      ggsave(filename = file, 
+             plot = benchmarking_plot(),
+             device=cairo_pdf,
+             width = paperWidth,
+             height = paerHeight,
+             units = "in"
+             )
+      
+    }
+    
+    
+  )
   
 
-# ------------------------------------------------------------------------------
-  output$downloadGraph <- downloadHandler(
-    filename = function() {
-      "graph.pdf"
-    },
-    content = function(file) {
-      file.copy(tempPDFfile, file, overwrite = TRUE)
-    }
-  )
-# ------------------------------------------------------------------------------
 } # end of server
 
 

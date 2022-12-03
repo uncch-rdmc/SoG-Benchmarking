@@ -10,7 +10,8 @@ library(scales)
 library(Rmisc)
 library(stringr)
 library(RColorBrewer)
-library(sysfonts)
+# library(sysfonts)
+#library(gfonts)
 library(showtext)
 
 
@@ -128,13 +129,25 @@ fixed_c_scale <- scale_color_manual(name="Legend", values = pairedPalette)
 fixed_s_scale <- scale_shape_manual(name="Legend", values = shapeNoList)
 
 
+
+
+# default page layout
+paperWidth <- 10
+paerHeight <- 8.5
+
+
 # -----------------------------------------------------------------------------
 # custom Google-font setting
 # -----------------------------------------------------------------------------
-sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")
-#
-# the above setting was replaced with a new css setting, includeCSS(), 
-# in the tags$head of app.R; see the manual of an R package, gfonts, esp.,
-# setup_font() function
-# 
-# 
+# The following setting is expected to download font files from a remote site
+# sysfonts::font_add_google(name = "Barlow Semi Condensed",family =  "barlow")
+
+# This setting loads locally saved ttf files in www/fonts 
+sysfonts::font_add(family = "barlow", 
+        regular = "www/fonts/barlow-semi-condensed-v14-latin-regular.ttf", 
+        italic = "www/fonts/barlow-semi-condensed-v14-latin-italic.ttf")
+
+# the above setting was supposed to be replaced with a new css setting with 
+# gfonts::includeCSS() in app.R; see the manual of an R package, gfonts, esp.,
+# setup_font() function; however, this approach did not work with ggplot2 
+# for some # unknown reason (naming?) and was abandoned 
