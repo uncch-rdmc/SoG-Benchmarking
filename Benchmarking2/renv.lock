@@ -481,6 +481,27 @@
       "Hash": "7c89603d81793f0d5486d91ab1fc6f1d",
       "Requirements": []
     },
+    "fst": {
+      "Package": "fst",
+      "Version": "0.9.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "34637e000c63c3de8d8aafceb82fd082",
+      "Requirements": [
+        "Rcpp",
+        "fstcore"
+      ]
+    },
+    "fstcore": {
+      "Package": "fstcore",
+      "Version": "0.9.12",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "1c133b1d853bd4f67043a6e9c17051e2",
+      "Requirements": [
+        "Rcpp"
+      ]
+    },
     "furrr": {
       "Package": "furrr",
       "Version": "0.3.1",
@@ -1671,6 +1692,18 @@
         "tzdb",
         "vctrs",
         "withr"
+      ]
+    },
+    "waiter": {
+      "Package": "waiter",
+      "Version": "0.2.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "93e6b6c8ae3f81d4be77a0dc74e5cf5e",
+      "Requirements": [
+        "R6",
+        "htmltools",
+        "shiny"
       ]
     },
     "warp": {

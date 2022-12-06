@@ -1,3 +1,4 @@
+library(fst)
 library(tibble)
 library(readr)
 library(plyr)

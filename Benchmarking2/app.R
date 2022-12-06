@@ -4,12 +4,40 @@ source("helpers.R")
 library(shinyjs)
 library(grDevices)
 library(shinyWidgets)
+library(waiter)
+library(lubridate)
 #library(shinyFeedback)
+
+waiting_screen <- tagList(
+  spin_wave(),
+  h4("loading ...")
+) 
+
 
 ################################################################################
 # ui defintion
 ################################################################################
 ui <- fluidPage(
+  waiter::useWaiter(),
+  # waiter::autoWaiter(c("benchmarkingDB")),
+  # waiter::useWaitress(),
+  # waiter::useHostess(),
+  # waiter::useAttendant(),
+  # waiter::attendantBar("progress-bar"),
+  
+  # waiterShowOnLoad(
+  #   color = "#f7fff7",
+  #   hostess_loader(
+  #     "loader", 
+  #     preset = "circle", 
+  #     text_color = "blue",
+  #     class = "label-center",
+  #     center_page = TRUE
+  #   )
+  # ),
+  
+  
+  
   shinyFeedback::useShinyFeedback(),
   #  shinythemes::themeSelector(),
   shinyjs::useShinyjs(),
@@ -220,9 +248,11 @@ ui <- fluidPage(
 ###############################################################################
 
 server <- function(input, output, session) {
+  # the following rv is used to store the choice of a service over time
+  rv <- reactiveValues()
   
-  
-  
+  # w <- waiter::Waiter$new()
+
   #----------------------------------------------------------------------------
   # observeEvent blocks
   #----------------------------------------------------------------------------
@@ -235,7 +265,7 @@ server <- function(input, output, session) {
   # can be updated; when there is no checked box, it seems too late to 
   # update the average-option checkbox, i.e., cannot update its state.
   observeEvent(input$peerGroup, { 
-    # message("observe:updateCheckbox(Input/selectAllpeer")
+    base::message("===== observe:updateCheckbox(Input/selectAllpeer")
     
     if (identical(input$peerGroup, citylabel[!citylabel %in% c(input$selectedCity)])){
       
@@ -298,7 +328,7 @@ server <- function(input, output, session) {
   
   observeEvent(input$selectedCity, {
     
-    # print("= observeEvent(input$selectedCity: start ===============")
+    base::message("===== observeEvent(input$selectedCity: start ===============")
     # print("observeEvent:city change: current settings at the begginin=")
     # print("current city=")
     # print(input$selectedCity)
@@ -315,7 +345,7 @@ server <- function(input, output, session) {
     updatePickerInput(session=session, inputId = "peerGroup",
                              choices = updatedPeerGroup,
                              selected = c(updatedPeerGroup))
-    # print("= observeEvent(input$selectedCity: end ===============")
+    base::message("===== observeEvent(input$selectedCity: end ===============")
   })
 
   
@@ -334,12 +364,34 @@ server <- function(input, output, session) {
   #
   observeEvent(input$selectedService, {
     
-    # print("= observeEvent(input$selectedService: start ===============")
-    # print("observeEvent(service): current input$selectedService=")
-    # print(input$selectedService)
-    # 
-    # print("observeEvent(service): current metric=input$selectedVar4num=")
-    # print(input$selectedVar4num)
+    base::message("===== observeEvent(input$selectedService: start ===============")
+    print("observeEvent(service): current input$selectedService=")
+    print(input$selectedService)
+    rv$lastService <- rv$currentService
+    rv$currentService <- input$selectedService;
+    print("rv$lastService=")
+    print(rv$lastService)
+    
+    
+    
+    
+    
+     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    print("observeEvent(service): current metric=input$selectedVar4num=")
+    print(input$selectedVar4num)
 
 
     
@@ -348,26 +400,46 @@ server <- function(input, output, session) {
     varset4numerator <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
     
     
-    # print("observeEvent(service): check new the changedvarset4numerator=")
+    print("observeEvent(service): check new the changedvarset4numerator=")
     # print(varset4numerator)
     # print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
     # print(varset4numerator[1])
-    
-    
+    # 
+    print("freezeReactiveValue: start")
     freezeReactiveValue(input, "selectedVar4num")
+    print("freezeReactiveValue: end")
     updateSelectInput(inputId = "selectedVar4num",
                       choices=c(varset4numerator),
                       selected = c(varset4numerator[1]))
     
+
+    print("observeEvent(service): post-update-check")
+    print("observeEvent(service): updated metric=input$selectedVar4num=")
+    print(input$selectedVar4num)
+    # # 
+    # print("observeEvent(service): updated list=varset4numerator[1]=")
+    # print(varset4numerator[1])
+    # 
+
+
+    # rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
+    # varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+    # 
+    # print("update the UI: selectedVar4denom ")
+    # # 
+    # freezeReactiveValue(input, "selectedVar4denom")
+    # updateSelectInput(
+    #   inputId = "selectedVar4denom",
+    #   choices = c(varset4denominator),
+    #   selected = c(varset4denominator[1])
+    # )
     
-    # print("observeEvent(service): post-update-check")
-    # print("observeEvent(service): updated metric=input$selectedVar4num=")
-    # print(input$selectedVar4num)
+    
+    
+    
     # 
-    # print("observeEvent(service): updated list=varset4numerator=")
-    # print(varset4numerator)
     # 
-    # print("= observeEvent(input$selectedService: end ===============")
+    base::message("===== observeEvent(input$selectedService: end ===============")
       })
   
   
@@ -394,67 +466,150 @@ server <- function(input, output, session) {
   # the newly selected numerator.
   observeEvent(input$selectedVar4num,{
 
-    # print("within observeEvent: input$selectedVar4num")
-    # print("input$selectedVar4num=")
-    # print(input$selectedVar4num)
-    # print("input$selectedUseDenominator=")
-    # print(input$selectedUseDenominator)
+    base::message("==== within observeEvent: input$selectedVar4num:start=",
+                  as.POSIXct(Sys.time(), tz = "EST5EDT"))
+    print("input$selectedVar4num=")
+    print(input$selectedVar4num)
+    print("input$selectedUseDenominator=")
+    print(input$selectedUseDenominator)
     
+    
+    
+    rv$lastServiceWN <- rv$currentServiceWN
+    rv$currentServiceWN <- input$selectedService;
+    
+    print("rv$lastServiceWN=")
+    print(rv$lastServiceWN)
+    print("rv$currentServiceWN=")
+    print(rv$currentServiceWN)
+    
+    print("rv$lastService=")
+    print(rv$lastService)
+    print("rv$currentService=")
+    print(rv$currentService)
+    
+    
+    
+    # get the current list of **all** variables for the current service
+    # note: this list now includes census variables
+    rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
+    # print("rawlist=")
+    # print(rawlist)
+    # the list of denominators must excluded the variable
+    # that is currently selected as the numerator
+    # so exclude the numerator from the above list
+    
+    varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+    
+    print("current varset4denominator[1]=")
+    print(varset4denominator[1])
     
     if (input$selectedUseDenominator) {
       # denominator-option is on
       
-      # print("input$selectedVar4denom=")
-      # print(input$selectedVar4denom)
+      # there are two situations to pass through this block
+      # 
+      # (1) While the same service is still kept,
+      # the numerator has been changed, and thus this change results in at least
+      # updating the denominator set and if necessary, the choice for 
+      # the denominator (for either case, a choice for the numerator cannot be 
+      # included in the denominator set)
+      # 
+      # (1-A) if the newly selected variable for the numerator is the one
+      # previously selected for the denominator, the denominator's state 
+      # must be reset and set to the first element of its set
+      # 
+      # (1-B) if the newly selected variable for the numerator is NOT the one
+      # previously selected for the denominator, the denominator can keep the
+      # currently chosen one
+      # 
+      # (2) A change occurred in the service, and 
+      # the variable set for the numerator has been reset to 
+      # the one of a new service and default choice is set to its first element,
+      # and the denominator set must be reset and so is its default choice 
+      # according to the default choice of the numerator
+      # 
+      # Are (1-A), (1-B) and (2) mutually exclusive? 
+      # (1-A) can occur only if the current and previous services are the same
+      # however, according the current coding, census variables are the same 
+      # across the services, census_1 in service #1 cannot be distinguishable
+      # from census_1 in service #2
+      # So the first conditional statement should be (2) that handles the 
+      # transition from service #i to service #j;
+      # then within the cases of the same service, separate (1-A) and (1-B)
+      
+      
+      print("current input$selectedVar4num=")
+      print(input$selectedVar4num)
+      
+      print("current input$selectedVar4denom=")
+      print(input$selectedVar4denom)
       
       
       
-      # get the current list of **all** variables for the current service
-      # note: this list now includes census variables
-      rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
-      # print("rawlist=")
-      # print(rawlist)
-      # the list of denominators must excluded the variable
-      # that is currently selected as the numerator
-      # so exclude the numerator from the above list
+      if (rv$lastServiceWN == input$selectedService){
+        print("%%%%% last service and current ones are the same %%%%%")
+        print("This is within-service change")
+        # handle cases of (1-A) and (1-B) 
+        if (input$selectedVar4num == input$selectedVar4denom) {
+          
+          print("numerator is the previously selected denominator")
+          print("reset the selected one for the denominator")
+          
+          updateSelectInput(
+            inputId = "selectedVar4denom",
+            choices = c(varset4denominator),
+            selected = c(varset4denominator[1])
+          )
+          
+        } else {
+          
+          
+            print("keep the current choice of denominator")
 
-      varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+            # print("varset4denominator:2nd[1]=")
+            # print(varset4denominator[1])
 
-      # print("varset4denominator=")
-      # print(varset4denominator)
-
-      
-      # checking new numerator variable and old denominator one
-      # new numerator == current denominator
-      # denominator must be updated
-      if (input$selectedVar4num == input$selectedVar4denom) {
+            updateSelectInput(
+              inputId = "selectedVar4denom",
+              choices = c(varset4denominator),
+              selected = c(input$selectedVar4denom)
+            )
+          
+          
+          
+          
+        }
         
-        # print("numerator is the previously selected denominator")
-        # print("reset the selected one for the denominator")
-        
+      } else {
+        print("%%%%% last service and current one are different %%%%%")
+        print("This is a cross-service change")
+        # handle cases of (2)
+
         updateSelectInput(
           inputId = "selectedVar4denom",
           choices = c(varset4denominator),
           selected = c(varset4denominator[1])
         )
-      } else {
         
-        # print("numerator is NOT the previously selected denominator")
-        # print("keep the current choice of denominator")
         
-        updateSelectInput(
-          inputId = "selectedVar4denom",
-          choices = c(varset4denominator),
-          selected = c(input$selectedVar4denom)
-        )
       }
+
+
+
       
     } else {
-      # denominator-option is off
-      # do nothing
-      # print("denominator is off; do nothing here")
+      # While denominator-option is off, keep updating
+      # the denom-var set-synced with the current state (service/numerator) 
+      print("denominator is off: just update the denominator set")
+      updateSelectInput(
+        inputId = "selectedVar4denom",
+        choices = c(varset4denominator),
+        selected = c(varset4denominator[1])
+      )
     }
-    
+    base::message("==== within observeEvent: input$selectedVar4num:end=",
+                  as.POSIXct(Sys.time(), tz = "EST5EDT"))
   })
   
   
@@ -464,14 +619,22 @@ server <- function(input, output, session) {
   # This block shows/hides the denominator UI pane 
   # 
   observeEvent(input$selectedUseDenominator, {
+    base::message("===== within observeEvent: input$selectedUseDenominator")
+    print("input$selectedUseDenominator=")
+    print(input$selectedUseDenominator)
+    if (input$selectedUseDenominator){
+      print("use denominator case")
+      updateRadioButtons(inputId = "selectMultiplier", selected = 2)
+    } else {
+      print("do not use denominator case")
+      updateRadioButtons(inputId = "selectMultiplier", selected = 0)
+    }
     
-    
-    
-    # print("within observeEvent: input$selectedUseDenominator")
-    # print("input$selectedService=")
-    # print(input$selectedService)
-    # print("input$selectedVar4num=")
-    # print(input$selectedVar4num)
+    print("within observeEvent: input$selectedUseDenominator: after multiplier")
+    print("input$selectedService=")
+    print(input$selectedService)
+    print("input$selectedVar4num=")
+    print(input$selectedVar4num)
     
     
     
@@ -514,18 +677,18 @@ server <- function(input, output, session) {
   
   # when the checkbox of denominator|context var is turned off,
   # chart returns to normal   
-  observeEvent(input$selectedUseDenominator,{
-    if (input$selectedUseDenominator){
-      updateRadioButtons(inputId = "selectMultiplier", selected = 2)
-    } else {
-      updateRadioButtons(inputId = "selectMultiplier", selected = 0)
-    }
-  })
+  # observeEvent(input$selectedUseDenominator,{
+  #   if (input$selectedUseDenominator){
+  #     updateRadioButtons(inputId = "selectMultiplier", selected = 2)
+  #   } else {
+  #     updateRadioButtons(inputId = "selectMultiplier", selected = 0)
+  #   }
+  # })
   
   # years UI: Must warn the no-selection case
   observeEvent(input$selectedYears,{
     
-    # message("\n\nwithin observeEvent: input$selectedYears")
+    message("===== within observeEvent: input$selectedYears")
     # print("length(input$selectedYears")
     # print(length(input$selectedYears))
     
@@ -574,16 +737,29 @@ server <- function(input, output, session) {
     
   })
   
+  # waitress <- waiter::Waitress$new("#benchmarkingDB", hide_on_render = TRUE)
 
+  
   #############################################################################
   # benchmarking-plot-generating function 
   #############################################################################
   benchmarking_plot <- reactive({
-
-    # base::message("= renderPlotly: START ==================================")
-    # base::message("output$benchmarkingplot: start-time=", 
-    # as.POSIXct(Sys.time(), tz = "EST5EDT"))
+    # waitress <- waiter::Waitress$new("#benchmarkingDB",  theme = "overlay", min = 0, max = 10)
     # 
+    # for(i in 1:15){
+    #   waitress$inc(10)
+    #   Sys.sleep(.3)
+    # }
+    
+    # att <- Attendant$new("progress-bar")
+    # 
+    # for(i in 1:10){
+    #   Sys.sleep(runif(1))
+    #   att$set(i * 10, text = sprintf("%s%%", i * 10))
+    # }
+    base::message("==== benchmarking_plot: start-time=",
+    as.POSIXct(Sys.time(), tz = "EST5EDT"))
+
 
     # The following setting ensures that 
     # peer-group membership is not reactively (instantaneously) updated;
@@ -597,6 +773,7 @@ server <- function(input, output, session) {
     
     # The first-time handling when the Submit button has nothing to submit
     if (input$goButton == 0){
+      # waitress$close()
       return()
     }
     # -------------------------------------------------------------------------
@@ -615,10 +792,38 @@ server <- function(input, output, session) {
 
     # sanity check against key input variables: base city, service, numerator
     # variable
+    print("before req block: sanity check")
+    
+    print("input$selectedCity=")
+    print(input$selectedCity)
+    print("input$selectedService=")
+    print(input$selectedService)
+    print("input$selectedVar4num=")
+    print(input$selectedVar4num)
     req(input$selectedCity,
         input$selectedService,
         input$selectedVar4num
     )
+    varset4check <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
+    #print("varset4check=")
+    #print(varset4check)
+    if (input$selectedVar4num %in% varset4check) {
+      print("member")
+    } else {
+      print("not member")
+    }
+    print("before denominator-req: sanity check")
+    print("input$selectedVar4denom=")
+    print(input$selectedVar4denom)
+    if (input$selectedVar4denom %in% varset4check) {
+      print("denominator is a member")
+    } else {
+      print("not a member")
+    }
+    
+    if (input$selectedUseDenominator){
+      req(input$selectedVar4denom %in% varset4check)
+    }
     # 
     # isolcating the base-city did not work; it seems the choice of a base city
     # must reactively update the state of selected comparison cities;
@@ -657,7 +862,9 @@ server <- function(input, output, session) {
 
     print("selected Service=")
     print(input$selectedService)
-
+    lastService <-input$selectedService
+    print("++++++++++++++++++ lastService ++++++++++++++++++")
+    print(lastService)
 
     
     # get full service-name for user-friendly rendering
@@ -750,19 +957,19 @@ server <- function(input, output, session) {
       select(selectedYearsC)        %>%
       as.matrix()
     
-    # print("data_sc_nm: afer as.matrix()=")
-    # print(data_sc_nm)
+    print("data_sc_nm: afer as.matrix()=")
+    print(data_sc_nm)
 
     # re-add column names: the above as.matrix() removed column names
     colnames(data_sc_nm) <- selectedYearsC
     
-    # print("data_sc_nm: afer colnames=")
-    # print(data_sc_nm)
+    print("data_sc_nm: afer colnames=")
+    print(data_sc_nm)
 
     suppressWarnings(storage.mode(data_sc_nm) <- "numeric")
-    # print("data_sc_nm:after changing stroage mode=")
-    # print(data_sc_nm)
-    # print(str(data_sc_nm))
+    print("data_sc_nm:after changing stroage mode=")
+    print(data_sc_nm)
+    print(str(data_sc_nm))
     
     
     # Before the adjustment by the multiplier,
@@ -795,8 +1002,8 @@ server <- function(input, output, session) {
     rownames(data_sc_nm) <-  baseCity
     
     
-    # print("data_sc_nm: after adding rowname=")
-    # print(data_sc_nm)
+    print("data_sc_nm: after adding rowname=")
+    print(data_sc_nm)
 
     #--------------------------------------------------------------------------
     # step 2: base municipality: denominator: to be ignored if no denominator
@@ -805,13 +1012,13 @@ server <- function(input, output, session) {
 
     if (useDenominator) {
       
-      # print("base m: denominator data block: ========== start ==========")
-      # print("current city=")
-      # print(baseCity)
-      # print("current service=")
-      # print(input$selectedService)
-      # print("current metric=")
-      # print(input$selectedVar4denom)
+      print("base m: denominator data block: ========== start ==========")
+      print("current city=")
+      print(baseCity)
+      print("current service=")
+      print(input$selectedService)
+      print("current metric=")
+      print(input$selectedVar4denom)
       
       
       # generating a base-city's denominator data as matrix
@@ -1337,7 +1544,9 @@ server <- function(input, output, session) {
         peerGroupList,
         "\nMultiplier: ",
         multiplierValue,
-        paste("\ngenerated at: ", as.character(Sys.time(), usetz=TRUE), sep=""),
+        paste("\ngenerated at: ", 
+        as.character(lubridate::with_tz(Sys.time(), tzone="EST5EDT"), 
+                     usetz=TRUE), sep=""),
         "\n\nData upated on: November 22, 2022"
       ),
       collapse = ""
@@ -1407,9 +1616,9 @@ server <- function(input, output, session) {
     
     
     
-    # base::message("= renderPlotly: END ==========================================")
-    # base::message("rquest endtime=", as.POSIXct(Sys.time(), tz = "EST5EDT"))
-    
+    base::message("====== benchmarking_plot: end-time:", as.POSIXct(Sys.time(),
+      tz = "EST5EDT"))
+    # waitress$close()
     plt1
 
 }) # end of tab 1's plot-generation function
@@ -1419,7 +1628,15 @@ server <- function(input, output, session) {
   # renderPlot(): generating the benchmarking plot
   #############################################################################  
   output$benchmarkingDB <- renderPlot({
+    # waitress$start(h3("Loading image ..."))
+    # w$show()
+    waiter::waiter_show(html = waiting_screen, color = "#4B9CD380")
+    
     print(benchmarking_plot())
+    # waitress$close() 
+    # w$hide()
+    
+    waiter_hide()
   })
   
   
@@ -1463,6 +1680,7 @@ server <- function(input, output, session) {
     
   )
   
+  waiter::waiter_hide()
 
 } # end of server
 
