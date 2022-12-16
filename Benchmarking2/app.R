@@ -361,33 +361,20 @@ server <- function(input, output, session) {
   # 1. switch a list of a set of vars(varset4numerator)
   # 2. set the selected var to the first of the above new list
   # a change in input$selectedVar4num does not affect its service
-  #
+  # Note: updating the denominator is handled in the numerator 
+  # not here 
   observeEvent(input$selectedService, {
     
     base::message("===== observeEvent(input$selectedService: start ===============")
     print("observeEvent(service): current input$selectedService=")
     print(input$selectedService)
+    
+    
+    # the folloiwng two lines store the last selected service
     rv$lastService <- rv$currentService
     rv$currentService <- input$selectedService;
     print("rv$lastService=")
     print(rv$lastService)
-    
-    
-    
-    
-    
-     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     
     print("observeEvent(service): current metric=input$selectedVar4num=")
@@ -416,29 +403,8 @@ server <- function(input, output, session) {
     print("observeEvent(service): post-update-check")
     print("observeEvent(service): updated metric=input$selectedVar4num=")
     print(input$selectedVar4num)
-    # # 
-    # print("observeEvent(service): updated list=varset4numerator[1]=")
-    # print(varset4numerator[1])
-    # 
 
 
-    # rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
-    # varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
-    # 
-    # print("update the UI: selectedVar4denom ")
-    # # 
-    # freezeReactiveValue(input, "selectedVar4denom")
-    # updateSelectInput(
-    #   inputId = "selectedVar4denom",
-    #   choices = c(varset4denominator),
-    #   selected = c(varset4denominator[1])
-    # )
-    
-    
-    
-    
-    # 
-    # 
     base::message("===== observeEvent(input$selectedService: end ===============")
       })
   
@@ -450,12 +416,16 @@ server <- function(input, output, session) {
   
   
   
-  # The behavior of the numerator set
+  # Dealing with a change in the numerator selector
+  # Part 1:  
+  # There two sources of a change to the numerator selector: 
   # 
-  # This check is meaningful when the denominator option is on;
-  # when the denominator-option is not used, there is no need to 
-  # update the list of denominator variables
-  # 
+  # (1) Service-induced change (side-effect): a new service is chosen => new 
+  # set of variables for the numerator and its default choice
+  # (2) User-incuded cange (direct): a user chose a new variable
+  # Part 2: 
+  # This block must also update the denominator whose choice is dependent on 
+  # the counterpart of the numerator
   # When the denominator-option is on, 
   # the selected numerator variable decides the set of denominator ones, 
   # any change to this UI modifies the set of denominator variables
@@ -474,7 +444,9 @@ server <- function(input, output, session) {
     print(input$selectedUseDenominator)
     
     
-    
+    # the following two lines keep the last state of the numerator selector
+    # this information will be used to differentiate within-service changes 
+    # from cross-service changes
     rv$lastServiceWN <- rv$currentServiceWN
     rv$currentServiceWN <- input$selectedService;
     
@@ -488,8 +460,6 @@ server <- function(input, output, session) {
     print("rv$currentService=")
     print(rv$currentService)
     
-    
-    
     # get the current list of **all** variables for the current service
     # note: this list now includes census variables
     rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
@@ -497,12 +467,12 @@ server <- function(input, output, session) {
     # print(rawlist)
     # the list of denominators must excluded the variable
     # that is currently selected as the numerator
-    # so exclude the numerator from the above list
+    # so exclude the numerator from the above raw list
     
     varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
     
-    print("current varset4denominator[1]=")
-    print(varset4denominator[1])
+    # print("current varset4denominator[1]=")
+    # print(varset4denominator[1])
     
     if (input$selectedUseDenominator) {
       # denominator-option is on
@@ -548,7 +518,7 @@ server <- function(input, output, session) {
       
       
       if (rv$lastServiceWN == input$selectedService){
-        print("%%%%% last service and current ones are the same %%%%%")
+        print("%%%%% last service and current one are the same %%%%%")
         print("This is within-service change")
         # handle cases of (1-A) and (1-B) 
         if (input$selectedVar4num == input$selectedVar4denom) {
@@ -585,7 +555,7 @@ server <- function(input, output, session) {
         print("%%%%% last service and current one are different %%%%%")
         print("This is a cross-service change")
         # handle cases of (2)
-
+        # selected is the first element of the denominator-variable set 
         updateSelectInput(
           inputId = "selectedVar4denom",
           choices = c(varset4denominator),
@@ -622,6 +592,8 @@ server <- function(input, output, session) {
     base::message("===== within observeEvent: input$selectedUseDenominator")
     print("input$selectedUseDenominator=")
     print(input$selectedUseDenominator)
+    
+    # adjust the multiplier according to the state
     if (input$selectedUseDenominator){
       print("use denominator case")
       updateRadioButtons(inputId = "selectMultiplier", selected = 2)
@@ -630,11 +602,11 @@ server <- function(input, output, session) {
       updateRadioButtons(inputId = "selectMultiplier", selected = 0)
     }
     
-    print("within observeEvent: input$selectedUseDenominator: after multiplier")
-    print("input$selectedService=")
-    print(input$selectedService)
-    print("input$selectedVar4num=")
-    print(input$selectedVar4num)
+    # print("within observeEvent: input$selectedUseDenominator: after multiplier")
+    # print("input$selectedService=")
+    # print(input$selectedService)
+    # print("input$selectedVar4num=")
+    # print(input$selectedVar4num)
     
     
     
@@ -649,7 +621,7 @@ server <- function(input, output, session) {
 
     varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
 
-    # print("update the UI: selectedVar4denom ")
+    print("update the selectedVar4denom and varset4denominator")
     # 
     freezeReactiveValue(input, "selectedVar4denom")
     updateSelectInput(
@@ -675,15 +647,7 @@ server <- function(input, output, session) {
   #   
   # })
   
-  # when the checkbox of denominator|context var is turned off,
-  # chart returns to normal   
-  # observeEvent(input$selectedUseDenominator,{
-  #   if (input$selectedUseDenominator){
-  #     updateRadioButtons(inputId = "selectMultiplier", selected = 2)
-  #   } else {
-  #     updateRadioButtons(inputId = "selectMultiplier", selected = 0)
-  #   }
-  # })
+
   
   # years UI: Must warn the no-selection case
   observeEvent(input$selectedYears,{
@@ -957,8 +921,8 @@ server <- function(input, output, session) {
       select(selectedYearsC)        %>%
       as.matrix()
     
-    print("data_sc_nm: afer as.matrix()=")
-    print(data_sc_nm)
+    # print("data_sc_nm: afer as.matrix()=")
+    # print(data_sc_nm)
 
     # re-add column names: the above as.matrix() removed column names
     colnames(data_sc_nm) <- selectedYearsC
