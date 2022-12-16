@@ -133,7 +133,7 @@ fixed_s_scale <- scale_shape_manual(name="Legend", values = shapeNoList)
 
 
 # default page layout
-paperWidth <- 10
+paperWidth <- 11
 paerHeight <- 8.5
 
 
