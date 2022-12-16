@@ -1658,7 +1658,7 @@ server <- function(input, output, session) {
         # portrait case
         # print("portrait request")
         paperWidth <- 8.5
-        paerHeight <- 10
+        paerHeight <- 11
       }
       
       
