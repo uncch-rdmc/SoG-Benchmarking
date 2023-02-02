@@ -38,7 +38,7 @@ ui <- fluidPage(
   
   
   
-  shinyFeedback::useShinyFeedback(),
+  # shinyFeedback::useShinyFeedback(),
   #  shinythemes::themeSelector(),
   shinyjs::useShinyjs(),
   
@@ -1357,7 +1357,7 @@ server <- function(input, output, session) {
             group = catgry,
             color = catgry
           ),
-          size = 1
+          linewidth = 1
         ) +
         geom_point(
           data = data4plot_pg,
@@ -1414,7 +1414,7 @@ server <- function(input, output, session) {
                 group = catgry,
                 color = catgry
               ),
-              size = 1
+              linewidth = 1
             ) +
             geom_point(
               data = data4EachPeerCity_rawt,
