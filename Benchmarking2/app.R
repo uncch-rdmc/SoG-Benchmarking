@@ -1,12 +1,11 @@
 library(shiny)
-#library(shinythemes)
 source("helpers.R")
 library(shinyjs)
 library(grDevices)
 library(shinyWidgets)
 library(waiter)
 library(lubridate)
-#library(shinyFeedback)
+
 
 waiting_screen <- tagList(
   spin_wave(),
@@ -1511,7 +1510,7 @@ server <- function(input, output, session) {
         paste("\ngenerated at: ", 
         as.character(lubridate::with_tz(Sys.time(), tzone="EST5EDT"), 
                      usetz=TRUE), sep=""),
-        "\n\nData upated on: November 22, 2022"
+        "\n\nData updated on: February 2, 2023"
       ),
       collapse = ""
     )
