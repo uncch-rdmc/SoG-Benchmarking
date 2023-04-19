@@ -22,13 +22,13 @@ library(showtext)
 # -----------------------------------------------------------------------------
 
 # completed benchmarking data file
-bd_data <-read_rds(file="bd_data_completed5.rds")
+bd_data <-readr::read_rds(file="bd_data_completed5.rds")
 
 # lookup-table file
-all_service_abbrev_to_full<-read_rds(file = "all_service_abbrev_to_full.rds")
+all_service_abbrev_to_full<-readr::read_rds(file = "all_service_abbrev_to_full.rds")
 
 # variable-name-to-label data files
-all_varNameToLabel<-read_rds(file = "all_varNameToLabel5.rds")
+all_varNameToLabel<-readr::read_rds(file = "all_varNameToLabel5.rds")
 
 # -----------------------------------------------------------------------------
 # creating static objects 
@@ -41,7 +41,7 @@ all_varNameToLabel<-read_rds(file = "all_varNameToLabel5.rds")
 # was chosen.
 
 # years
-y_list <- bd_data %>% distinct(Year) %>% pull() %>% as.character()
+y_list <- bd_data %>% dplyr::distinct(Year) %>% dplyr::pull() %>% as.character()
 
 
 # all participating municipalities names vector
@@ -62,7 +62,7 @@ v2lallinOne <-list()
 for (row in 1:nrow(all_varNameToLabel)) {
   valueN <- all_varNameToLabel[row, "var_name"]
   valueL <- all_varNameToLabel[row, "var_label"]
-  vl <- setNames(as.list(valueL), valueN)
+  vl <- stats::setNames(as.list(valueL), valueN)
   v2lallinOne <- append(v2lallinOne, vl)
 }
 # usage: v2lallinOne[["qamr01"]]
@@ -93,14 +93,49 @@ srv2varlbllst <-list()
 for (srv in srvclngToShrtRefLst){
   # value is short form such as amr
   tmp <- all_varNameToLabel %>%
-    filter(var_acr==srv) %>% select(var_name, var_label)
-  name_vec  <-tmp %>% pull(var_label)
+    dplyr::filter(var_acr==srv) %>% dplyr::select(var_name, var_label)
+  name_vec  <-tmp %>% dplyr::pull(var_label)
   # print(name_vec)
-  value_vec <- tmp %>% pull(var_name) 
+  value_vec <- tmp %>% dplyr::pull(var_name) 
   # print(value_vec)
-  valueLst<-setNames(as.list(value_vec), name_vec)
+  valueLst<-stats::setNames(as.list(value_vec), name_vec)
   srv2varlbllst[[srv]]  <- valueLst
 }
+###############################################################################
+# data-manipulation functions
+###############################################################################
+get_numerator_data <- function(dt, selectedService, 
+                               selectedVar4num, 
+                               group,
+                               selectedYears){
+  dt |> 
+    filter(Service == selectedService | Service =="census")   |>
+    filter(Variable==selectedVar4num)   |>
+    filter(Municipality %in% group) |> 
+    arrange(Municipality, Year) |>
+    spread(key=Year, value=Value)       |>
+    select(selectedYears) |> 
+    as.matrix()
+  
+  
+}
+
+get_bd_matrix_data <- function(dt, selectedService, 
+                               selectedVar4num, 
+                               group,
+                               selectedYears){
+  dt |> 
+    filter(Service == selectedService | Service =="census")   |>
+    filter(Variable==selectedVar4num)   |>
+    filter(Municipality %in% group) |> 
+    arrange(Municipality, Year) |>
+    spread(key=Year, value=Value)       |>
+    select(selectedYears) |> 
+    as.matrix()
+  
+  
+}
+
 
 # -----------------------------------------------------------------------------
 # Graph-rendering-related settings 
@@ -110,7 +145,7 @@ for (srv in srvclngToShrtRefLst){
 # This is a static approach, i.e., colors are pre-assigned to all participating 
 # cities and these city-color pairs are fixed 
 # For more realistic settings, the palettes must be dynamically subset
-pairedPalette <- brewer.pal(n=length(citylabel), name="Paired")
+pairedPalette <- RColorBrewer::brewer.pal(n=length(citylabel), name="Paired")
 # print("pairedPalette=")
 # print(pairedPalette)
 lvlcl <- levels(factor(citylabel, ordered = T))
@@ -123,11 +158,11 @@ shapeNoList <- seq(1:length(citylabel))
 names(shapeNoList)  <- lvlcl
 
 # for bar/column plot
-fixed_f_scale <- scale_fill_manual(name="Legend", values=pairedPalette)
+fixed_f_scale <- ggplot2::scale_fill_manual(name="Legend", values=pairedPalette)
 # for line and point
-fixed_c_scale <- scale_color_manual(name="Legend", values = pairedPalette)
+fixed_c_scale <- ggplot2::scale_color_manual(name="Legend", values = pairedPalette)
 # for shapes
-fixed_s_scale <- scale_shape_manual(name="Legend", values = shapeNoList)
+fixed_s_scale <- ggplot2::scale_shape_manual(name="Legend", values = shapeNoList)
 
 
 

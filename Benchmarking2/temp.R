@@ -1,9 +1,18 @@
-# data_sc_nm <- bd_data %>% 
-#   filter(Service == input$selectedService | Service =="census")   %>%
-#   filter(Variable==input$selectedVar4num)    %>%
-#   filter(Municipality == baseCity) %>%
-#   spread(key=Year, value=Value)        %>%
-#   select(selectedYearsC)        %>% 
+# Coding warnings
+# 
+# 1. Because multiple services have the same variable name,
+# service-wise filtering must come ahead of variable-wise one to avoid
+# filtering mistakes  
+
+
+
+
+# data_sc_nm <- bd_data |> 
+#   filter(Service == input$selectedService | Service =="census")   |>
+#   filter(Variable==input$selectedVar4num)    |>
+#   filter(Municipality == baseCity) |>
+#   spread(key=Year, value=Value)        |>
+#   select(selectedYearsC)        |> 
 #   as.matrix()
 
 # print("data_sc_nm: afer as.matrix()=")
@@ -26,22 +35,22 @@ get_selectedCity_numerator_data <- function(dt, selectedService,
                                             selectedVar4num, 
                                             selectedCity,
                                             selectedYears){
-  dt %>% 
-    filter(Service == selectedService | Service =="census")   %>%
-    filter(Variable==selectedVar4num)    %>%
-    filter(Municipality == selectedCity) %>%
-    spread(key=Year, value=Value)        %>%
-    select(selectedYears)        %>% 
+  dt |> 
+    filter(Service == selectedService | Service =="census")   |>
+    filter(Variable==selectedVar4num)    |>
+    filter(Municipality == selectedCity) |>
+    spread(key=Year, value=Value)        |>
+    select(selectedYears)        |> 
     as.matrix()
 }
 
 
-# data_sc_dm <- bd_data %>% 
-#   filter(Service == input$selectedService | Service =="census")   %>%  
-#   filter(Variable==input$selectedVar4denom)  %>%
-#   filter(Municipality == baseCity) %>%
-#   spread(key=Year, value=Value)        %>%
-#   select(selectedYearsC)        %>% 
+# data_sc_dm <- bd_data |> 
+#   filter(Service == input$selectedService | Service =="census")   |>  
+#   filter(Variable==input$selectedVar4denom)  |>
+#   filter(Municipality == baseCity) |>
+#   spread(key=Year, value=Value)        |>
+#   select(selectedYearsC)        |> 
 #   as.matrix()
 
 #' get a selected municipality's data for the denominator
@@ -63,23 +72,23 @@ get_selectedCity_denominator_data <- function(dt, selectedService,
                                               selectedVar4denom, 
                                               selectedCity,
                                               selectedYears){
-  dt %>% 
-    filter(Service == selectedService | Service =="census")   %>%  
-    filter(Variable==selectedVar4denom)  %>%
-    filter(Municipality == selectedCity) %>%
-    spread(key=Year, value=Value)        %>%
-    select(selectedYears)        %>% 
+  dt |> 
+    filter(Service == selectedService | Service =="census")   |>  
+    filter(Variable==selectedVar4denom)  |>
+    filter(Municipality == selectedCity) |>
+    spread(key=Year, value=Value)        |>
+    select(selectedYears)        |> 
     as.matrix()
     
 }
 
-# data_pg_nm <- bd_data %>% 
-#   filter(Service == input$selectedService | Service =="census")   %>%
-#   filter(Variable==input$selectedVar4num)   %>%
-#   filter(Municipality %in% checkedM) %>% 
-#   arrange(Municipality, Year) %>%
-#   spread(key=Year, value=Value)       %>%
-#   select(selectedYearsC) %>% 
+# data_pg_nm <- bd_data |> 
+#   filter(Service == input$selectedService | Service =="census")   |>
+#   filter(Variable==input$selectedVar4num)   |>
+#   filter(Municipality %in% checkedM) |> 
+#   arrange(Municipality, Year) |>
+#   spread(key=Year, value=Value)       |>
+#   select(selectedYearsC) |> 
 #   as.matrix()
 
 
@@ -101,27 +110,46 @@ get_peerGroup_numerator_data <- function(dt, selectedService,
                                          selectedVar4num, 
                                             peerGroup,
                                             selectedYears){
-  dt %>% 
-    filter(Service == selectedService | Service =="census")   %>%
-    filter(Variable==selectedVar4num)   %>%
-    filter(Municipality %in% peerGroup) %>% 
-    arrange(Municipality, Year) %>%
-    spread(key=Year, value=Value)       %>%
-    select(selectedYears) %>% 
+  dt |> 
+    filter(Service == selectedService | Service =="census")   |>
+    filter(Variable==selectedVar4num)   |>
+    filter(Municipality %in% peerGroup) |> 
+    arrange(Municipality, Year) |>
+    spread(key=Year, value=Value)       |>
+    select(selectedYears) |> 
     as.matrix()
   
   
 }
 
 
-# data_pg_dm <- bd_data %>% 
-#   filter(Service == input$selectedService | Service =="census")   %>%
-#   filter(Variable==input$selectedVar4denom) %>%
-#   #filter(Municipality %in% updatedPeerGroup) %>% 
-#   filter(Municipality %in% checkedM) %>% 
-#   spread(key=Year, value=Value)       %>%
-#   select(selectedYearsC) %>% 
+# data_pg_dm <- bd_data |> 
+#   filter(Service == input$selectedService | Service =="census")   |>
+#   filter(Variable==input$selectedVar4denom) |>
+#   #filter(Municipality %in% updatedPeerGroup) |> 
+#   filter(Municipality %in% checkedM) |> 
+#   spread(key=Year, value=Value)       |>
+#   select(selectedYearsC) |> 
 #   as.matrix()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -144,13 +172,13 @@ get_peerGroup_denominator_data <- function(dt, selectedService,
                                            selectedVar4denom, 
                                            peerGroup,
                                            selectedYears){
-  dt %>% 
-    filter(Service == selectedService | Service =="census")   %>%
-    filter(Variable==selectedVar4denom) %>%
-    #filter(Municipality %in% updatedPeerGroup) %>% 
-    filter(Municipality %in% peerGroup) %>% 
-    spread(key=Year, value=Value)       %>%
-    select(selectedYears) %>% 
+  dt |> 
+    filter(Service == selectedService | Service =="census")   |>
+    filter(Variable==selectedVar4denom) |>
+    #filter(Municipality %in% updatedPeerGroup) |> 
+    filter(Municipality %in% peerGroup) |> 
+    spread(key=Year, value=Value)       |>
+    select(selectedYears) |> 
     as.matrix()
 }
 

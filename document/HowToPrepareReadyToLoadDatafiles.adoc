@@ -6,6 +6,9 @@
 
 toc::[]
 
+== Steps as of 2023-02-02
+see `SoG-Benchmarking/data-prep/sog_bd_data-prep-automation.R`
+
 == Steps as of 2022-11-14
 [source, R]
 ----

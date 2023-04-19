@@ -1,0 +1,62 @@
+:toc: right
+:toclevels: 3
+:icons: font 
+
+
+= What to do after a new set of data files was delivered 
+
+== Update History
+* 2023-04-19 W: Minor changes
+
+== Steps 
+=== Triage
+The following two data files are occasionally updated:
+
+* `Benchmarking_Dataset_Odum.xlsx`
+* `VariableNamesandLabels.xlsx`
+
+While another data file, which consists of mostly census data, would be also updated, ut is less frequent, probably once a year.
+
+When the first two data files are delivered, 
+
+* check the contents of data files concerning their changes, esp. changes in the numbers of rows and columns of each sheet; it seems new data are intermittently added to the worksheet of "police".
+** If some significant changes are found, ask Obed about these changes and modify the data-prep script accordingly.
+
+
+
+=== update/Run the data-prep script file (`sog_bd_data-prep-automation.R`)
+. create a new local working directory under `~/Documents/experiments/visualization/benchmarking/data` whose name is usually given by `yyyy-mm-dd`. 
+. copy the data-prep script file into the above working directory and `cp` the above two original files to "bm_data.xlsx" and "vnl.xlsx", respectively. For example, 
++
+----
+$ cp Benchmarking_Dataset_Odum.xlsx bm_data.xlsx
+$ cp VariableNamesandLabels.xlsx vnl.xlsx
+----
+. load the data-prep script file into RStudio
+. set the current working directory to the above directory
++
+----
+setwd("~/Documents/experiments/visualization/benchmarking/data/yyyy-mm-dd")
+----
+. modify the above script file, esp. directory names, etc. if necessary.
+. update the data-update string in `subtitleText` of `app.R` 
+----
+    subtitleText <- paste(
+      c(
+        "Base Municipality: ",
+        baseCity,
+        "\nService: ",
+        serviceNameFull,
+        "\nComparison Municipalities: ",
+        peerGroupList,
+        "\nMultiplier: ",
+        multiplierValue,
+        paste("\ngenerated at: ", 
+        as.character(lubridate::with_tz(Sys.time(), tzone="EST5EDT"), 
+                     usetz=TRUE), sep=""),
+        "\n\nData updated on: February 2, 2023"
+      ),
+
+----
+
+
