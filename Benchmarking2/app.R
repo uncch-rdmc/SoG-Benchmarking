@@ -1558,7 +1558,7 @@ server <- function(input, output, session) {
         paste("\ngenerated at: ", 
         as.character(lubridate::with_tz(Sys.time(), tzone="EST5EDT"), 
                      usetz=TRUE), sep=""),
-        "\n\nData updated on: April 18, 2023"
+        "\n\nData updated on: April 28, 2023"
       ),
       collapse = ""
     )
