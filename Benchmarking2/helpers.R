@@ -11,10 +11,10 @@ library(scales)
 library(Rmisc)
 library(stringr)
 library(RColorBrewer)
-# library(sysfonts)
+library(sysfonts)
 #library(gfonts)
 library(showtext)
-
+library(ggpubr)
 
 
 # -----------------------------------------------------------------------------
@@ -30,6 +30,18 @@ all_service_abbrev_to_full<-readr::read_rds(file = "all_service_abbrev_to_full.r
 # variable-name-to-label data files
 all_varNameToLabel<-readr::read_rds(file = "all_varNameToLabel5.rds")
 
+# all_varNameToLabel <- all_varNameToLabel |> dplyr::filter(!(var_name=="qhore09" & var_order==13))
+# readr::write_rds(all_varNameToLabel, file = "~/github/sog/bm2/SoG-Benchmarking/data-prep/all_varNameToLabel5.rds")
+
+# metric-defintion table
+#metric_def_data <- readr::read_rds(file="metric_def_data.rds")
+# The above missing def data for scio-economic data (category 14)
+
+# all_vname2def is to be read back
+all_vname2def <- readr::read_rds(file="all_vname2def.rds")
+print("all_vname2def=")
+print(length(all_vname2def))
+print(all_vname2def[["census_04"]])
 # -----------------------------------------------------------------------------
 # creating static objects 
 # -----------------------------------------------------------------------------
@@ -48,6 +60,10 @@ y_list <- bd_data %>% dplyr::distinct(Year) %>% dplyr::pull() %>% as.character()
 citylabel <-c("Apex", "Chapel Hill", "Charlotte", "Concord", "Goldsboro", 
         "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
 
+sizeOfMuniucipalities <- length(citylabel)
+maxPeerSelection4I <- 5
+
+
 # Apex's peer-group vector as the initial choice set
 rvllabel <- c("Chapel Hill",   "Charlotte", "Concord", "Goldsboro", 
         "Greensboro", "Hickory", "Raleigh", "Wilson", "Winston-Salem")
@@ -58,14 +74,29 @@ rvllabel <- c("Chapel Hill",   "Charlotte", "Concord", "Goldsboro",
 # where name is their label
 
 # all vars named list
-v2lallinOne <-list()
-for (row in 1:nrow(all_varNameToLabel)) {
-  valueN <- all_varNameToLabel[row, "var_name"]
-  valueL <- all_varNameToLabel[row, "var_label"]
-  vl <- stats::setNames(as.list(valueL), valueN)
-  v2lallinOne <- append(v2lallinOne, vl)
-}
+# v2lallinOne <-list()
+# for (row in 1:nrow(all_varNameToLabel)) {
+#   valueN <- all_varNameToLabel[row, "var_name"]
+#   valueL <- all_varNameToLabel[row, "var_label"]
+#   vl <- stats::setNames(as.list(valueL), valueN)
+#   v2lallinOne <- append(v2lallinOne, vl)
+# }
+
+
+# 
+# base::saveRDS(v2lallinOne, file = "~/github/sog/bm2/SoG-Benchmarking/data-prep/v2lallinOne.rds")
+v2lallinOne <- base::readRDS(file = "v2lallinOne.rds")
+
 # usage: v2lallinOne[["qamr01"]]
+
+# vname2def <- list()
+# for (row in 1:nrow(metric_def_data)) {
+#   valueN <- metric_def_data[row, "var_name"]
+#   valueD <- metric_def_data[row, "var_def"]
+#   vl <- stats::setNames(as.list(valueD), valueN)
+#   vname2def <- append(vname2def, vl)
+# }
+# rm(valueN, valueD, vl)
 
 
 
@@ -170,6 +201,39 @@ fixed_s_scale <- ggplot2::scale_shape_manual(name="Legend", values = shapeNoList
 # default page layout
 paperWidth <- 11
 paerHeight <- 8.5
+# ------------------------------------------------------------------------------
+
+createTextualTable <- function(dt, denominator=FALSE){
+  if (denominator) {
+    # denominator available
+    
+    ggpubr::ggtexttable(dt, rows = NULL,
+                        theme = ttheme(base_style="blank", 
+                                       tbody.style = tbody_style(size=9, hjust=0, x=0.01, fill = NA),
+                                       colnames.style = colnames_style(size=9, hjust=0, x=0.01, fill = NA))) |>
+      ggpubr::tab_add_hline(at.row = c(1, 2), 
+                            row.side = "top", linewidth = 2) |>
+      ggpubr::tab_add_hline(at.row = c(3), 
+                            row.side = "bottom", linewidth = 2)
+    
+    
+  } else {
+    # no denominator
+    ggpubr::ggtexttable(dt, rows = NULL,
+                        theme = ttheme(base_style="blank", 
+                                       tbody.style = tbody_style(size=9, hjust=0, x=0.01, fill = NA),
+                                       colnames.style = colnames_style(siz=9, hjust=0, x=0.01, fill = NA))) |>
+      ggpubr::tab_add_hline(at.row = c(1, 2), 
+                            row.side = "top", linewidth = 2) |>
+      ggpubr::tab_add_hline(at.row = c(3), 
+                            row.side = "top", linewidth = 2)
+    
+  }
+  
+  
+  
+}
+
 
 
 # -----------------------------------------------------------------------------

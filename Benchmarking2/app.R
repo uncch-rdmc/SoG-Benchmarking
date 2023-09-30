@@ -83,7 +83,8 @@ ui <- shiny::fluidPage(
         shiny::htmlOutput(outputId = "initialMessage",
                    container = shiny::h3),
         
-        shiny::plotOutput(outputId = "benchmarkingDB"),
+        shiny::plotOutput(outputId = "benchmarkingDB")
+        # shiny::tableOutput("metricDefTable")
         
       ),
       
@@ -110,27 +111,43 @@ ui <- shiny::fluidPage(
       # select a base city
       shiny::selectInput(
         inputId = 'selectedCity',
-        label = 'Select base municipality',
+        label = 'Step 1: Select your base municipality',
         choices = c(citylabel)
+      ),
+      
+      
+      # 2023-new addition
+      # radio button 
+      # The default is to individually render up to 5 peers 
+      shiny::radioButtons(
+        inputId = "selectRenderingType",
+        label = "Step 2: Select whether you would like to:",
+        choices = list(
+          "Individually compare with up to 5 municipalities" = 0,
+          "Compare with an average of as many municipalities as you like" = 1
+        ),
+        selected = 0
       ),
       
       # select comparison municipalities
       shinyWidgets::pickerInput(
         inputId = "peerGroup",
-        label = "Select comparison municipalities",
+        label = "Step 3: Select comparison municipalities",
         choices = rvllabel,
-        selected = rvllabel,
         multiple = TRUE,
         options = list(
           `actions-box` = TRUE,
-          `virtualScroll` = (length(citylabel) - 1)
+          `virtualScroll` = (length(citylabel) - 1),
+          `max-options` = sizeOfMuniucipalities,
+          `max-options-text` = "individual rendering is limited to 5 municipalities"
+          
         )
       ),
       
       # select years
       shinyWidgets::pickerInput(
         inputId = "selectedYears",
-        label = "Select years",
+        label = "Step 4: Select years",
         choices = y_list,
         selected = y_list,
         multiple = TRUE,
@@ -139,9 +156,7 @@ ui <- shiny::fluidPage(
       ),
       
       
-      
-      # Button that submit the above choice of base/comparison municipalities
-      shiny::actionButton("goButton", "Submit"),
+
       
       
       
@@ -149,7 +164,7 @@ ui <- shiny::fluidPage(
       # select a service
       shiny::selectInput(
         inputId = 'selectedService',
-        label = 'Select service',
+        label = 'Step 5: Select service',
         choices = srvclngToShrtRefLstWoc,
         selected = srvclngToShrtRefLstWoc[1]
       ),
@@ -162,75 +177,67 @@ ui <- shiny::fluidPage(
       # select a numerator(metric) variable:pulldown menu
       shiny::selectInput(
         inputId = 'selectedVar4num',
-        label = 'Select service metric',
+        label = 'Step 6: Select service metric',
         choices = c(srv2varlbllst[["amr"]]),
         #selected = initialNumeratorValue
         selected = c()
       ),
       
-      # show/hide the denominator-pane
-      shiny::checkboxInput(
-        inputId = 'selectedUseDenominator',
-        label = 'Use denominator|context Variable',
-        value = FALSE
-      ),
+
       
+      
+      
+      # 2023-update
       # the denominator pane
-      shiny::conditionalPanel(
-        condition = "input.selectedUseDenominator == true",
-        
+      # shiny::conditionalPanel(
+        # condition = "input.selectedUseDenominator == FALSE",
+        # 
         # select a denominator variable: pulldwon menu
         shiny::selectInput(
           inputId = 'selectedVar4denom',
-          label = 'Select denominator/context variable',
+          label = 'Step 7: Select denominator variable (to normalize the service metric)',
           choices = c()
-        )
-      ),
+        ),
+#      ),
       
       
       # select a multiplier
       
       shiny::radioButtons(
         inputId = "selectMultiplier",
-        label = "Select a multiplier",
+        label = "Step 8: Select a multiplier",
         choices = list(
-          "None" = 0,
-          "x 100" = 2,
-          "x 100K" = 5,
+          "No multiplier" = 0,
+          "Percentage (x100)" = 2,
+          "x 100k" = 5,
           "x 1M" = 6
         ),
         selected = 0
       ),
       
       
-      # add the Average line or not
-      shiny::checkboxInput(
-        inputId = "selectAvg",
-        label = "Average of comparison municipalities",
-        value = FALSE
-      ),
+
+      # 2023-update-item:
+      shiny::tags$label("Step 9: Click below to populate the graph"),
+      shiny::tags$br(),
+      # 2023-update: moved at Step 9
+      # Button that submit the above choice of base/comparison municipalities
+      shiny::actionButton(inputId = "goButton", 
+                          label = "Submit"),
       
-      # show/hide the CI-panel and add CIs or not
-      shiny::conditionalPanel(
-        condition = "input.selectAvg == true",
-        shiny::checkboxInput(
-          inputId = "selectCI",
-          label = "Add confidence interval (95%)",
-          value = FALSE
-        )
-      ),
-      
-      # Graph-Downloading button
-      # downloadButton('downloadGraph'),
-      shiny::downloadButton('dwonloadImage'),
-      
+
       # radio-button for page layout
       shiny::radioButtons(
         inputId = "selectPageLayout",
-        label = "Select page layout",
+        label = "Step 10: Select page layout and click the button below to download",
         choices = list("Portrait" = 0, "Landscape" = 1),
         selected = 1
-      )
+      ),
+      # 2023-update: moved below Step 10
+      # Graph-Downloading button
+      # downloadButton('downloadGraph'),
+      shiny::downloadButton(outputId = 'dwonloadImage', 
+                            label = "Download this graph")
       
       
     ) # sidePanel
@@ -248,7 +255,9 @@ ui <- shiny::fluidPage(
 
 server <- function(input, output, session) {
   # the following rv is used to store the choice of a service over time
-  rv <- shiny::reactiveValues()
+  rv <- shiny::reactiveValues(maxPeerSelected=sizeOfMuniucipalities,
+                              denominatorUsed=FALSE,
+                              selectAvg=FALSE)
   
   # w <- waiter::Waiter$new()
 
@@ -264,11 +273,19 @@ server <- function(input, output, session) {
   # can be updated; when there is no checked box, it seems too late to 
   # update the average-option checkbox, i.e., cannot update its state.
   shiny::observeEvent(input$peerGroup, { 
-    base::message("===== observe:updateCheckbox(Input/selectAllpeer")
+    base::message("===== observe:select peers: start")
+    rv$lastPeerGroup <- rv$currentPeerGroup
+    rv$currentPeerGroup <- input$peerGroup
+    print("rv$lastPeerGroup=")
+    print(rv$lastPeerGroup)
+    print("rv$currentPeerGroup=")
+    print(rv$currentPeerGroup)
+    print("input$peerGroup=")
+    print(input$peerGroup)
     
     if (identical(input$peerGroup, citylabel[!citylabel %in% c(input$selectedCity)])){
       
-      # print("state: select all cities")
+      print("state: select all cities")
       # print(input$peerGroup)
       
       # updateCheckboxInput(inputId = "selectAllpeer", value = TRUE)
@@ -282,13 +299,13 @@ server <- function(input, output, session) {
       # print(input$peerGroup)
       
       if (is.null(input$peerGroup)) {
-        # print("state: input$peerGroup is null:empty")
+        print("state: input$peerGroup is null:empty")
         # do nothing;
         # the average checkbox must have been unchecked
         shiny::updateCheckboxInput(inputId = "selectAvg", value = FALSE)
         shinyjs::disable(id="selectAvg")
       } else {
-        # print("state: input$peerGroup is not null:not-empty")
+        print("state: input$peerGroup is not null:not-empty")
         # update the state for the average-option checkbox
         if (length(input$peerGroup) == 1) {
           shiny::updateCheckboxInput(inputId = "selectAvg", value = FALSE)
@@ -296,15 +313,128 @@ server <- function(input, output, session) {
         } else {
           shinyjs::enable(id = "selectAvg")
         }
-        
-        
       }
       
       
+      
+      
+      
     }
+    
+    # 2023-changes
+    # check whether the size of the peer group >=6 or < 6
+    
+    # if (length(input$peerGroup) <=5) {
+    #   # individual rendering 
+    #   rv$avgRendering = FALSE 
+    #   print("rv$avgRendering <=5 case")
+    # 
+    # } else {
+    #   # average-line rendering
+    #   print("rv$avgRendering > 5 case")
+    #   rv$avgRendering = TRUE
+    # }
+    # 
+    # print("rv$avgRendering =")
+    # print(rv$avgRendering)
+    
+    base::message("===== observe:selectPeers: end")
   })
+  
+  
+  
+  # rendering-type selection
+  shiny::observeEvent(input$selectRenderingType, { 
+    
+    base::message("===== observeEvent(input$selectRenderingType: start ===============")
+    # I => A is always safe
+    # A => I is unsafe because more than 5 cities might have been selected
+    
+    
+    
+    if (input$selectRenderingType == 0){
+      # A to I case
+      # 
+      # back to default state
+      # under this situation (individual rendering), 
+      # the size of the peerGroup must be 5 or less
+      print("A to I case")
+      rv$maxPeerSelected <- maxPeerSelection4I
+      rv$avgRendering = FALSE 
+      print("indivisual-case: current values")
+      print(rv$maxPeerSelected)
+      print(rv$avgRendering)
+      print("rv$currentPeerGroup=")
+      print(rv$currentPeerGroup)
+      print("input$peerGroup=")
+      print(input$peerGroup)
+      
+      
+      if (length(rv$currentPeerGroup) <= maxPeerSelection4I){
+        print("no need to truncate")
+        # no action necessary
+        shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
+          selected = rv$currentPeerGroup,  #character(0),
+          options=list(`max-options` = maxPeerSelection4I))
+        
+      } else {
+        # must truncate the set to <= 5
+        print("peerGroup must be truncated to the length of 5")
+        tobecut <- rv$currentPeerGroup
+        shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
+                                        choices = tobecut[1:5], 
+                                        selected = tobecut[1:5],  #character(0),
+                                        options=list(`max-options` = maxPeerSelection4I))
+        rv$currentPeerGroup<- tobecut[1:5]
+      }
+      
+      print("***************** after truncation *****************")
+      print("rv$currentPeerGroup=")
+      print(rv$currentPeerGroup)
+      print("input$peerGroup=")
+      print(input$peerGroup)
+                                      
+                                      
+      
+    } else if (input$selectRenderingType == 1)  {
+      # I to A case
+      # average-line rendering
+      # the size of the peerGroup is more than 5
+      print("I to A case")
+      rv$maxPeerSelected <- sizeOfMuniucipalities
+      rv$avgRendering = TRUE
+      print("average-case: current values")
+      print(rv$maxPeerSelected)
+      print(rv$avgRendering)
+      print("rv$lastPeerGroup=")
+      print(rv$lastPeerGroup)
+      print("rv$currentPeerGroup=")
+      print(rv$currentPeerGroup)
+      
+      print("input$lpeerGroup=")
+      print(input$peerGroup)
+      shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
+                                      selected = rv$currentPeerGroup, #character(0),
+                                      options=list(`max-options` = sizeOfMuniucipalities))
+      
+    } else {
+      # this is unlikely
+      print("!!!!!!!!!! warning: selectRenderingType is neither 0 or 1 !!!!!!!!!!")
+    }
+    
+    
+    
+    base::message("===== observeEvent(input$selectRenderingType: end ===============")    
+    })
 
+  
+  
 
+  
+  
+  
+  
+  
   
   # selection of a service
   # affects the set of service metrics and its selected one
@@ -328,22 +458,25 @@ server <- function(input, output, session) {
   shiny::observeEvent(input$selectedCity, {
     
     base::message("===== observeEvent(input$selectedCity: start ===============")
-    # print("observeEvent:city change: current settings at the begginin=")
-    # print("current city=")
-    # print(input$selectedCity)
-    # print("current service=")
+    print("observeEvent:city change: current settings at the begginin=")
+    print("current city=")
+    print(input$selectedCity)
+    print("current service=")
     
     updatedPeerGroup <- citylabel[!citylabel %in% c(input$selectedCity)]
+
+    print("updatedPeerGroup=")
+    print(updatedPeerGroup)
     
     # print(input$selectedService)
     # print("current metric=")
     # print(input$selectedVar4num)
-    # print("current peerGroup=")
-    # print(input$peerGroup)
+    print("current peerGroup=")
+    print(input$peerGroup)
 
     shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
                              choices = updatedPeerGroup,
-                             selected = c(updatedPeerGroup))
+                             selected = character(0))
     base::message("===== observeEvent(input$selectedCity: end ===============")
   })
 
@@ -396,7 +529,8 @@ server <- function(input, output, session) {
     print("freezeReactiveValue: end")
     shiny::updateSelectInput(inputId = "selectedVar4num",
                       choices=c(varset4numerator),
-                      selected = c(varset4numerator[1]))
+                      selected = c(varset4numerator[1])
+                      )
     
 
     print("observeEvent(service): post-update-check")
@@ -437,11 +571,13 @@ server <- function(input, output, session) {
 
     base::message("==== within observeEvent: input$selectedVar4num:start=",
                   as.POSIXct(Sys.time(), tz = "EST5EDT"))
+    
     print("input$selectedVar4num=")
     print(input$selectedVar4num)
-    print("input$selectedUseDenominator=")
-    print(input$selectedUseDenominator)
-    
+    # print("input$selectedUseDenominator=")
+    # print(input$selectedUseDenominator)
+    print("rv$denominatorUsed=")
+    print(rv$denominatorUsed)
     
     # the following two lines keep the last state of the numerator selector
     # this information will be used to differentiate within-service changes 
@@ -473,7 +609,9 @@ server <- function(input, output, session) {
     # print("current varset4denominator[1]=")
     # print(varset4denominator[1])
     
-    if (input$selectedUseDenominator) {
+    
+    #if (input$selectedUseDenominator) {
+    if (TRUE) {
       # denominator-option is on
       
       # there are two situations to pass through this block
@@ -514,126 +652,159 @@ server <- function(input, output, session) {
       print("current input$selectedVar4denom=")
       print(input$selectedVar4denom)
       
+      print("rv$lastServiceWN=")
+      print(rv$lastServiceWN)
+      print("input$selectedService=")
+      print(input$selectedService)
+      print("before line 620")
       
-      
-      if (rv$lastServiceWN == input$selectedService){
-        print("%%%%% last service and current one are the same %%%%%")
-        print("This is within-service change")
-        # handle cases of (1-A) and (1-B) 
-        if (input$selectedVar4num == input$selectedVar4denom) {
-          
-          print("numerator is the previously selected denominator")
-          print("reset the selected one for the denominator")
-          
-          shiny::updateSelectInput(
-            inputId = "selectedVar4denom",
-            choices = c(varset4denominator),
-            selected = c(varset4denominator[1])
-          )
-          
-        } else {
-          
-          
+      if (is.null(rv$lastServiceWN)) {
+        # this is the very first load case
+        # 
+        print("denominator is on but no previous service data: just update the denominator set")
+        shiny::updateSelectInput(
+          inputId = "selectedVar4denom",
+          choices = c(varset4denominator),
+          selected = character(0) #selected = c(varset4denominator[1])
+        )
+        # 
+        # 
+      } else {
+        
+        
+        
+        
+        if (rv$lastServiceWN == input$selectedService) {
+          print("%%%%% last service and current one are the same %%%%%")
+          print("This is within-service change")
+          # handle cases of (1-A) and (1-B)
+          if (input$selectedVar4num == input$selectedVar4denom) {
+            print("numerator is the previously selected denominator")
+            print("reset the selected one for the denominator")
+            
+            shiny::updateSelectInput(
+              inputId = "selectedVar4denom",
+              choices = c(varset4denominator),
+              selected = c(varset4denominator[1])
+            )
+            
+          } else {
             print("keep the current choice of denominator")
-
+            
             # print("varset4denominator:2nd[1]=")
             # print(varset4denominator[1])
-
+            
             shiny::updateSelectInput(
               inputId = "selectedVar4denom",
               choices = c(varset4denominator),
               selected = c(input$selectedVar4denom)
             )
+            
+            
+            
+            
+          }
           
-          
+        } else {
+          print("%%%%% last service and current one are different %%%%%")
+          print("This is a cross-service change")
+          # handle cases of (2)
+          # selected is the first element of the denominator-variable set
+          shiny::updateSelectInput(
+            inputId = "selectedVar4denom",
+            choices = c(varset4denominator),
+            selected = c(varset4denominator[1]) #character(0) #
+          )
           
           
         }
         
-      } else {
-        print("%%%%% last service and current one are different %%%%%")
-        print("This is a cross-service change")
-        # handle cases of (2)
-        # selected is the first element of the denominator-variable set 
-        shiny::updateSelectInput(
-          inputId = "selectedVar4denom",
-          choices = c(varset4denominator),
-          selected = c(varset4denominator[1])
-        )
+        
+        
         
         
       }
+      
 
-
-
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       
     } else {
       # While denominator-option is off, keep updating
-      # the denom-var set-synced with the current state (service/numerator) 
+      # the denom-var set-synced with the current state (service/numerator)
       print("denominator is off: just update the denominator set")
       shiny::updateSelectInput(
         inputId = "selectedVar4denom",
         choices = c(varset4denominator),
-        selected = c(varset4denominator[1])
+        selected = character(0)#c(varset4denominator[1])
       )
     }
+    
+    
+    
+    
+    
+    
     base::message("==== within observeEvent: input$selectedVar4num:end=",
                   as.POSIXct(Sys.time(), tz = "EST5EDT"))
   })
   
-  
-  
-  
-  
-  # This block shows/hides the denominator UI pane 
   # 
-  shiny::observeEvent(input$selectedUseDenominator, {
-    base::message("===== within observeEvent: input$selectedUseDenominator")
-    print("input$selectedUseDenominator=")
-    print(input$selectedUseDenominator)
-    
-    # adjust the multiplier according to the state
-    if (input$selectedUseDenominator){
-      print("use denominator case")
-      shiny::updateRadioButtons(inputId = "selectMultiplier", selected = 2)
-    } else {
-      print("do not use denominator case")
-      shiny::updateRadioButtons(inputId = "selectMultiplier", selected = 0)
-    }
-    
-    # print("within observeEvent: input$selectedUseDenominator: after multiplier")
-    # print("input$selectedService=")
-    # print(input$selectedService)
-    # print("input$selectedVar4num=")
-    # print(input$selectedVar4num)
-    
-    
-    
-    # get the current list of **all** variables for the current service
-    # note: this list now includes census variables
-    rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
-    # print("rawlist=")
-    # print(rawlist)
-    # the list of denominators must excluded the variable
-    # that is currently selected as the numerator
-    # so exclude the numerator from the above list
-
-    varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
-
-    print("update the selectedVar4denom and varset4denominator")
-    # 
-    shiny::freezeReactiveValue(input, "selectedVar4denom")
-    shiny::updateSelectInput(
-      inputId = "selectedVar4denom",
-      choices = c(varset4denominator),
-      selected = c(varset4denominator[1])
-    )
-    
-    # print("input$selectedVar4denom=")
-    # print(input$selectedVar4denom)
-  })
+  # shiny::observeEvent(input$selectedVar4denom, {
+  #   base::message("===== within observeEvent: input$selectedVar4denom: start")
+  #   print("rv$denominatorUsed=")
+  #   print(rv$denominatorUsed)
+  #   
+  #   
+  #   if (rv$denominatorUsed){
+  #     print("use denominator case")
+  #     shiny::updateRadioButtons(inputId = "selectMultiplier", selected = 2)
+  #     
+  #     # get the current list of **all** variables for the current service
+  #     # note: this list now includes census variables
+  #     rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
+  #     # print("rawlist=")
+  #     # print(rawlist)
+  #     # the list of denominators must excluded the variable
+  #     # that is currently selected as the numerator
+  #     # so exclude the numerator from the above list
+  #     
+  #     varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
+  #     
+  #     print("update the selectedVar4denom and varset4denominator")
+  #     # 
+  #     shiny::freezeReactiveValue(input, "selectedVar4denom")
+  #     shiny::updateSelectInput(
+  #       inputId = "selectedVar4denom",
+  #       choices = c(varset4denominator),
+  #       selected = input$selectedVar4denom #c(varset4denominator[1])
+  #     )
+  #     
+  #     
+  #   } else {
+  #     print("do not use denominator case")
+  #     shiny::updateRadioButtons(inputId = "selectMultiplier", selected = 0)
+  #   }
+  #   
+  # 
+  #   
+  #   base::message("===== within observeEvent: input$selectedVar4denom: end")
+  # })
+  # 
   
-  
+
   
   
   
@@ -730,10 +901,23 @@ server <- function(input, output, session) {
     # quick check/uncheck-box actions; consequently, 
     # it is now collectively updated by clicking the Submit button and 
     # isolate() is used here
-    checkedM <- shiny::isolate(input$peerGroup)
+    # 
+    # 2023-09-28; temporarily changed to set checkedM to rv$currentPeerGroup
+    
+    #checkedM <- shiny::isolate(input$peerGroup)
+    #checkedM <- input$peerGroup
+    checkedM <- rv$currentPeerGroup
+    
+    
     print("input$peerGroup: checkedM=")
     print(checkedM)
-    
+    print("after isolation statement")
+    print("rv$currentPeerGroup=")
+    print(rv$currentPeerGroup)
+    print("input$peerGroup=")
+    print(input$peerGroup)
+
+     
     # The first-time handling when the Submit button has nothing to submit
     if (input$goButton == 0){
       # waitress$close()
@@ -776,16 +960,28 @@ server <- function(input, output, session) {
       print("not member")
     }
     print("before denominator-req: sanity check")
-    print("input$selectedVar4denom=")
-    print(input$selectedVar4denom)
-    if (input$selectedVar4denom %in% varset4check) {
-      print("denominator is a member")
-    } else {
-      print("not a member")
-    }
     
-    if (input$selectedUseDenominator){
-      shiny::req(input$selectedVar4denom %in% varset4check)
+    
+    print("input$selectedVar4denom=")
+    if (input$selectedVar4denom != ""){
+      
+        
+        print(input$selectedVar4denom)
+        if (input$selectedVar4denom %in% varset4check) {
+          print("denominator is a member")
+        } else {
+          print("not a member")
+        }
+        
+        #if (input$selectedUseDenominator){
+        if (input$selectedVar4denom != ""){
+          shiny::req(input$selectedVar4denom %in% varset4check)
+        } else {
+          print("denominator is not selected")
+        }
+      
+    } else {
+      print("denominator is not selected")
     }
     # 
     # isolcating the base-city did not work; it seems the choice of a base city
@@ -794,6 +990,30 @@ server <- function(input, output, session) {
     # action to complete the choice) ended up erratic/unstable UI states.
     # baseCity = isolate(input$selectedCity) <= this did not work
     baseCity = input$selectedCity
+    
+    
+# 2023 addition
+    if (input$selectRenderingType == 1) {
+      # default case
+      # individual rendering
+      rv$selectAvg<- TRUE
+    } else {
+      rv$selectAvg<- FALSE
+
+    }
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+    print("current state of selectRenderingType(0 or 1)=")
+    print(input$selectRenderingType)
+    print("rv$selectAvg=")
+    print(rv$selectAvg)
+    print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+    
+    
+    if (rv$selectAvg && length(input$peerGroup) == 0){
+      shiny::validate("Please select at least one comaprison municipality")
+    }    
+    
+    
     
     # -------------------------------------------------------------------------
     # data-prep stage: 2 steps [factory-default] or 4 steps
@@ -841,8 +1061,11 @@ server <- function(input, output, session) {
 
 
     # define a coding-friendly var for the denominator-option switch
+    
     useDenominator <- FALSE
-    if (input$selectedUseDenominator) {
+    #if (input$selectedUseDenominator !="") {
+    if (input$selectedVar4denom !=""){
+      rv$denominatorUsed <- TRUE
       useDenominator <- TRUE
       print("A case of using a denominator")
       # print(input$selectedUseDenominator)
@@ -851,7 +1074,7 @@ server <- function(input, output, session) {
       print(input$selectedVar4denom)
       
     } else {
-      # print("This request does not use a denominator")
+      print("This request does not use a denominator")
     }
 
 
@@ -1368,7 +1591,7 @@ server <- function(input, output, session) {
     # statements within it and the following incremental approach was used
     
 
-    # print("==================== beginning of plot ==================== ")
+    print("==================== beginning of plot ==================== ")
     
     # setting for using a custom google-font 
     showtext::showtext_auto()
@@ -1385,19 +1608,67 @@ server <- function(input, output, session) {
     # This block generates the bar plot for the base city
     plt1 <- data4plot_sc %>%
       ggplot2::ggplot() +
-      ggplot2::geom_col(ggplot2::aes(x = Year, y = quotient, fill = catgry)) +
+      # old way
+
+      # ggplot2::geom_col(ggplot2::aes(x = Year, y = quotient, fill = catgry)) +
+      # ggplot2::scale_y_continuous(name = "Value", labels = scales::comma) +
+      # ggplot2::scale_fill_manual(name = "Base", values = c("#B3B3B3"))
+      
+      # new way 
+      ggplot2::geom_line(
+        data = data4plot_sc,
+        color="black",
+        linejoin ="round",
+        linewidth = 2,
+        ggplot2::aes(
+          x = Year,
+          y = quotient,
+          group = catgry
+          # color = catgry
+        ) 
+        )+
+      ggplot2::geom_point(
+        data = data4plot_sc,
+        color="black",
+        size = 4,
+        # shape=0,
+        ggplot2::aes(
+          x = Year,
+          y = quotient
+          # shape = catgry,
+          # color = catgry
+        )
+      ) +
+ 
+    
+    
       ggplot2::scale_y_continuous(name = "Value", labels = scales::comma) +
-      ggplot2::scale_fill_manual(name = "Base", values = c("#B3B3B3"))
+      ggplot2::scale_fill_manual(name = "Base", values = c("#000000"))
+    
+    
     
     # incremetally adding optional items
     # collective average line instead of individual lines for the peer-group 
     # also overlaying points
-    if (input$selectAvg) {
-      # print("extra-step for adding average")
+    if (rv$avgRendering) {# if (input$selectAvg) {
+      print("extra-step for adding average")
       # add an average line
       plt1 <- plt1 +
+        
+        ggplot2::geom_ribbon(
+          data = data4plot_pgx,
+          fill= "#7BAFD4", 
+          alpha=0.15,
+          ggplot2::aes(
+            x = Year,
+            y = quotient,
+            ymin = quotient - ci,
+            ymax = quotient + ci, 
+            group = catgry
+          )
+        ) +
         ggplot2::geom_line(
-          data = data4plot_pg,
+          data = data4plot_pgx,
           ggplot2::aes(
             x = Year,
             y = quotient,
@@ -1406,8 +1677,11 @@ server <- function(input, output, session) {
           ),
           linewidth = 1
         ) +
+        
+
+        
         ggplot2::geom_point(
-          data = data4plot_pg,
+          data = data4plot_pgx,
           ggplot2::aes(
             x = Year,
             y = quotient,
@@ -1415,25 +1689,46 @@ server <- function(input, output, session) {
             color = catgry
           ),
           size = 3
-        )
+        ) 
+
+          
+        
+      
       # handling the CI-error-bar option
-      if (input$selectCI) {
+      # if (input$selectCI) {
+      # 
+      # 
         # print("data4plot_pgx=")
         # print(data4plot_pgx)
         # add CI-bands
-        plt1 <- plt1 + ggplot2::geom_errorbar(
-          data = data4plot_pgx,
-          ggplot2::aes(
-            x = Year,
-            y = quotient,
-            ymin = quotient - ci,
-            ymax = quotient + ci
-          ),
-          width = .1,
-          color = "#696969",
-          position = ggplot2::position_dodge(0.1)
-        )
-      }
+        # plt1 <- plt1 + ggplot2::geom_errorbar(
+        #   data = data4plot_pgx,
+        #   ggplot2::aes(
+        #     x = Year,
+        #     y = quotient,
+        #     ymin = quotient - ci,
+        #     ymax = quotient + ci
+        #   ),
+        #   width = .1,
+        #   color = "#696969",
+        #   position = ggplot2::position_dodge(0.1)
+        # )
+        
+        # plt1 <- plt1 +
+        #   ggplot2::geom_ribbon(
+        #     data = data4plot_pgx,
+        #     fill= "#ADD8E6", 
+        #     color="#7BAFD4",
+        #     ggplot2::aes(
+        #       x = Year,
+        #       y = quotient,
+        #       ymin = quotient - ci,
+        #       ymax = quotient + ci
+        #     )
+        #     
+        #   )
+        
+      # }
       
       
     } else {
@@ -1495,15 +1790,31 @@ server <- function(input, output, session) {
 
     # print("numerator=")
     # print(input$selectedVar4num)
-    # print("numerator's name(label) check=")
-    # print("v2lallinOne[[input$selectedVar4num]]=")
-    # print(v2lallinOne[[input$selectedVar4num]])
+    print("numerator's name(label) check=")
+    print("v2lallinOne[[input$selectedVar4num]]=")
+    print(v2lallinOne[[input$selectedVar4num]])
 
 
     # numerator(metric) variable name: full
     metricVarLabel <- stringr::str_wrap(v2lallinOne[[input$selectedVar4num]], 
                                         width = 80)
-    # print(metricVarLabel)
+    print("metricVarLabel=")
+    print(metricVarLabel)
+    print("**** var-defintion for this N var **** this is new")
+    print(all_vname2def[[input$selectedVar4num]])
+    
+    df4DefTable <- tibble(
+      Metric=c(
+        paste(stringr::str_wrap(v2lallinOne[[input$selectedVar4num]], width = 30)),
+        
+        ""),
+      Definition=c(
+        paste(stringr::str_wrap(all_vname2def[[input$selectedVar4num]], width = 60)),
+                   
+                   "")
+    )
+    print("df4DefTable without denominator=")
+    print(df4DefTable)
     
 
     # print("denominator=")
@@ -1520,6 +1831,28 @@ server <- function(input, output, session) {
       # print("use denominator case: variable-name")
       contextVarLabel <- paste("\n/",
         stringr::str_wrap(v2lallinOne[[input$selectedVar4denom]], width = 80))
+      print("denominator=")
+      print(input$selectedVar4denom)
+      print("denominator var_label=")
+      print(v2lallinOne[[input$selectedVar4denom]])
+      print("**** var-defintion for this D var **** this is new")
+      print(all_vname2def[[input$selectedVar4denom]])
+      
+      
+      df4DefTable <- tibble(
+        Metrics=c(
+          paste(stringr::str_wrap(v2lallinOne[[input$selectedVar4num]], width = 30)),
+          paste(stringr::str_wrap(v2lallinOne[[input$selectedVar4denom]], width = 30))
+               ),
+        Definitions=c(
+          paste(stringr::str_wrap(all_vname2def[[input$selectedVar4num]], width = 60)),
+          paste(stringr::str_wrap(all_vname2def[[input$selectedVar4denom]], width = 60))
+               )
+      )
+      print("df4DefTable with denominator=")
+      print(df4DefTable)
+      
+      
     }
     # print("contextVarLabel=")
     # print(contextVarLabel)
@@ -1571,7 +1904,7 @@ server <- function(input, output, session) {
     # -------------------------------------------------------------------------
     
     # adding title/caption data
-    if (input$selectAvg) {
+    if (rv$avgRendering) {#if (input$selectAvg) {
       # with the average line
       plt1 <- plt1 +  ggplot2::labs(title = titleText,
                            subtitle = msg_no_base_m_data,
@@ -1584,7 +1917,7 @@ server <- function(input, output, session) {
     }
 
     # The average-option-related special processing
-    if (input$selectAvg) {
+    if (rv$avgRendering) {#if (input$selectAvg) {
       # with the average line
       plt1 <- plt1 +
         fixed_c_scale +
@@ -1626,11 +1959,23 @@ server <- function(input, output, session) {
       )
     
     
+    # table 
+    pDefTable <- createTextualTable(df4DefTable, useDenominator)
+    
+    plt1x<- ggpubr::ggarrange(plt1, pDefTable, 
+              ncol = 1, nrow = 2,
+              heights = c(1.5, 0.5))
+    
+    
     
     base::message("====== benchmarking_plot: end-time:", as.POSIXct(Sys.time(),
       tz = "EST5EDT"))
     # waitress$close()
-    plt1
+    
+     
+    
+    
+    plt1x
 
 }) # end of tab 1's plot-generation function
   
@@ -1650,7 +1995,13 @@ server <- function(input, output, session) {
     waiter::waiter_hide()
   })
   
+  #############################################################################
+  # output$metricDefTable <- renderTable(
+  #   
+  #   
+  # )
   
+  #############################################################################
   
   
   #############################################################################
