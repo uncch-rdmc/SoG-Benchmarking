@@ -258,3 +258,17 @@ paste("generated at: ", as.character(as.POSIXct(Sys.time(), tz = "EST5EDT"), use
 library(lubridate)
 lubridate::with_tz(Sys.time(), tzone="EST5EDT")
 paste("generated at: ", as.character(lubridate::with_tz(Sys.time(), tzone="EST5EDT"),usetz=TRUE), sep="")
+
+
+
+###############################################################################
+selected_Service <- "amr"; selected_Var4num <- 'qamr01'
+bd_data %>%
+  dplyr::filter(Service == selected_Service |
+                  Service == "census")   %>% 
+  print(n=1000) %>% dplyr::filter(Service == "amr") %>% print() %>%
+  dplyr::filter(Variable == 'qamr01')%>% 
+  print()       %>%
+  dplyr::filter(!is.na(Value)) %>%
+  dplyr::distinct(Municipality) %>%
+  dplyr::pull()

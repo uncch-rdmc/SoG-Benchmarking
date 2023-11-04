@@ -81,7 +81,7 @@ write_rds(metric_def_data, file="~/github/sog/bm2/SoG-Benchmarking/data-prep/met
 metric_def_data <- readr::read_rds(file="~/github/sog/bm2/SoG-Benchmarking/data-prep/metric_def_data.rds")
 
 
-
+# checking the contents?
 vname <- metric_def_data |> pull (var_name) 
 #vname2def <- as.list(metric_def_data["var_name"])
 vdef <- metric_def_data |> pull(var_def) 
@@ -143,11 +143,11 @@ for (row in 1:nrow(all_metric_def_data)) {
   vl <- stats::setNames(as.list(valueD), valueN)
   all_vname2def <- append(all_vname2def, vl)
 }
-
-all_vname2def$qyl12
-all_vname2def$census_04
-all_vname2def[["census_04"]]
-all_vname2def[["qbi12_05"]]
+# test
+# all_vname2def$qyl12
+# all_vname2def$census_04
+# all_vname2def[["census_04"]]
+# all_vname2def[["qbi12_05"]]
 
 
 # base::saveRDS(all_metric_def_data, file = "~/github/sog/bm2/SoG-Benchmarking/data-prep/all_metric_def_data.rds")
@@ -249,3 +249,14 @@ ggpubr::ggtexttable(df4DefTable2, rows = NULL,
 ###############################################################################
 letters[1:5]
 letters[c(1:3)]
+
+str(all_vname2def)
+len_vec <- nchar(all_vname2def)
+sort(len_vec)
+histogram(len_vec)
+median(len_vec) # 70
+mean(len_vec)   # 150
+boxplot(len_vec)
+
+
+

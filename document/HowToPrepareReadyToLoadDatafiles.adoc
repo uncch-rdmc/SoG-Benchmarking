@@ -5,6 +5,81 @@
 :icons: font 
 
 toc::[]
+== Steps as of 2023-10-26 Th
+* new data: overview
+** The latest data no longer have redundant columns/data
+** Columns whose name is previously pre-fixed with "a_" column
+** A new service "Budget and Finance" was added as the second one, totally 14 services
+----
+
+
+Asphalt Maintenance and Repair
+Budget and Finance
+Building Inspections
+Central Human Resources
+Emergency Communications
+Fire Service
+Fleet Maintenance
+Household Recycling
+Parks and Recreation
+Police Service
+Residential Refuse Collection
+Wastewater Service
+Water Service
+Yard Waste and Leaf Collection
+
+Asphalt Maintenance and Repair
+Building Inspections
+Central Human Resources
+Emergency Communications
+Fire Service
+Fleet Maintenance
+Household Recycling
+Parks and Recreation
+Police Service
+Residential Refuse Collection
+Wastewater Service
+Water Service
+Yard Waste and Leaf Collection
+
+----
+----
+"Asphalt Maintenance and Repair"
+"Budget and Finance"
+"Building Inspections"
+"Central Human Resources"
+"Emergency Communications"
+"Fire Service"
+"Fleet Maintenance"
+"Household Recycling"
+"Parks and Recreation"
+"Police Service"
+"Residential Refuse Collection"
+"Wastewater Service"
+"Water Service"
+"Yard Waste and Leaf Collection"
+----
+* 2023-10-27 version
+----
+Asphalt Maintenance and Repair
+Building Inspection
+Central Human Resources
+Parks and Recreation
+Emergency Communications
+Fire Service
+Fleet Maintenance
+Household Recycling
+Police Service
+Residential Refuse Collection
+Wastewater Service
+Water Service
+Yard Waste and Leaf Collection
+
+
+----
+
+** Each service worksheet is not numbered, fully spelled.
+
 
 == Steps as of 2023-02-02
 see `SoG-Benchmarking/data-prep/sog_bd_data-prep-automation.R`
