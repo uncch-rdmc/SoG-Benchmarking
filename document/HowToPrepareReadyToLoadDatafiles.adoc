@@ -78,6 +78,43 @@ Yard Waste and Leaf Collection
 
 ----
 
+* 2023-11-29 version 
+----
+Asphalt Maintenance and Repair
+Building Inspection
+Central Human Resources
+Emergency Communications
+Fire Service
+Fleet Maintenance
+Household Recycling
+Parks and Recreation
+Police Service
+Residential Refuse Collection
+Wastewater Service
+Water Service
+Yard Waste and Leaf Collection
+
+----
+* 2024-01-18 version
+Note: various variables were removed 
+----
+Asphalt Maintenance and Repair
+Building Inspection
+Central Human Resources
+Emergency Communications
+Fire Service
+Fleet Maintenance
+Household Recycling
+Parks and Recreation
+Police Service
+Residential Refuse Collection
+Wastewater Service
+Water Service
+Yard Waste and Leaf Collection
+
+----
+
+
 ** Each service worksheet is not numbered, fully spelled.
 
 
