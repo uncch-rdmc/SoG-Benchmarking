@@ -60,10 +60,10 @@
     },
     "Matrix": {
       "Package": "Matrix",
-      "Version": "1.6-2",
+      "Version": "1.6-3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "e4ea5684d8d52584681b7704132b5189",
+      "Hash": "1d1b6901cf9b6b1b446bc56a7d47efa4",
       "Requirements": [
         "lattice"
       ]
@@ -1431,10 +1431,10 @@
     },
     "mgcv": {
       "Package": "mgcv",
-      "Version": "1.9-0",
+      "Version": "1.9-1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "086028ca0460d0c368028d3bda58f31b",
+      "Hash": "110ee9d83b496279960e162ac97764ce",
       "Requirements": [
         "Matrix",
         "nlme"
@@ -2023,10 +2023,10 @@
     },
     "rpart": {
       "Package": "rpart",
-      "Version": "4.1.21",
+      "Version": "4.1.23",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "d5bc1a16e01e50e08581f0c362d3955d",
+      "Hash": "b3d390424f41d04174cccf84d49676c2",
       "Requirements": []
     },
     "rprojroot": {

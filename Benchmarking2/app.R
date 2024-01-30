@@ -379,7 +379,7 @@ server <- function(input, output, session) {
     # rendering option must be reset to the default whenever a base-city is
     # changed in order to avoid an inconsistent state in steps 2/3
     # change in the base city resets the set of peers => this means
-    # average caluclation is impossible in step 2, i.e., 
+    # average calculation is impossible in step 2, i.e., 
     # average option cannot be sustained
     # reset step 2 to 0
     
@@ -794,14 +794,14 @@ server <- function(input, output, session) {
     # new settings
     # change the set of metrics according to a newly selected service
     varset4numerator <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
-    
-    
+    print("step 5: contents check: varset4numerator: original")
+    print(varset4numerator)
     # print("observeEvent(service): check new the changedvarset4numerator=")
-    
-    
-    # print(varset4numerator)
-    # print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
-    # print(varset4numerator[1])
+    varset4numerator<- varset4numerator[order(names(varset4numerator))]
+    print("after sort: varset4numerator")
+    print(varset4numerator)
+    print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
+    print(varset4numerator[1])
     # 
     # print("freezeReactiveValue: start")
     
@@ -915,11 +915,11 @@ server <- function(input, output, session) {
     # so exclude the numerator from the above raw list
     
     varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
-    
-    # print("current varset4denominator[1]=")
-    # print(varset4denominator[1])
-    
-    
+    print("before: current varset4denominator[1]=")
+    print(varset4denominator[1])
+    varset4denominator <- varset4denominator[order(names(varset4denominator))]
+    print("after sort: current varset4denominator[1]=")
+    print(varset4denominator[1])
     #if (input$selectedUseDenominator) {
     # if (TRUE) {
       # denominator-option is on
