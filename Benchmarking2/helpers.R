@@ -222,7 +222,7 @@ shape_no_list <- function(target_name, peer_names, average=FALSE){
   if (average){
     pp <- c(17)
     mpty_palette <- c(base, pp)
-    all_names <- c(target_name, "Average")
+    all_names <- if (length(peer_names) == length(citylabel))  c(target_name, "System Average") else c(target_name, "Average")
     names(mpty_palette) <- all_names
   } else if (is.null(peer_names)) {
     # target only: 19 only
@@ -260,7 +260,10 @@ color_palette_mpty_indv <- function(target_name, peer_names, average=FALSE){
   
   if (average){
     mpty_palette <-c("#000000", "#7BAFD4")
-    all_names <- c(target_name, "Average")
+    all_names <- if (length(peer_names) == length(citylabel)) c(target_name, "System Average") else  c(target_name, "Average")
+    
+    
+    
     names(mpty_palette) <- all_names
     
   } else if (is.null(peer_names)) {

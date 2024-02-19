@@ -137,7 +137,11 @@ ui <- shiny::fluidPage(
       style="background-color: rgba(123, 175, 212, 0.15); font-family: 'Barlow Semi Condensed', sans-serif;font-weight: 100;",
       # #7BAFD4
       # rgba(123, 175, 212, 1)
+      # 
+      # 
+      #------------------------------------------------------------------------
       # Step 1: Base city
+      #------------------------------------------------------------------------
       # select a base city
       #shiny::selectInput(
       shinyWidgets::pickerInput(
@@ -149,22 +153,32 @@ ui <- shiny::fluidPage(
           `live-search` = TRUE)
       ),
       
-      
+      #------------------------------------------------------------------------
       # Step 2: Rendering type
+      #------------------------------------------------------------------------
       # 2023-new addition
+      # 2024-02 revision: 3rd option was added
+      # 
       # radio button 
       # The default is to individually render up to 5 peers 
+      # Two extra alternatives
+      # 2A: average among the selected
+      # 2B: average of all cities
+      # 
       shiny::radioButtons(
         inputId = "selectRenderingType",
         label = "Step 2: Select whether you would like to:",
         choices = list(
           "Individually compare with up to 5 municipalities" = 0,
-          "Compare with an average of as many municipalities as you like" = 1
+          "Compare with an average of as many municipalities as you like" = 1,
+          "Comppare with the average of all jurisdictions" =2
         ),
         selected = 0
       ),
       
+      #------------------------------------------------------------------------
       # Step 3: peers or comparison municipalities
+      #------------------------------------------------------------------------
       # select comparison municipalities
       shinyWidgets::pickerInput(
         inputId = "peerGroup",
@@ -181,7 +195,11 @@ ui <- shiny::fluidPage(
         )
       ),
       shiny::textOutput("step3message"),
+      
+      
+      #------------------------------------------------------------------------
       # Step 4: Years
+      #------------------------------------------------------------------------
       # select years
       shinyWidgets::pickerInput(
         inputId = "selectedYears",
@@ -195,9 +213,9 @@ ui <- shiny::fluidPage(
       
       
 
-      
+      #------------------------------------------------------------------------
       # Step 5: Service
-      
+      #------------------------------------------------------------------------
       
       # select a service
       #shiny::selectInput(
@@ -213,9 +231,10 @@ ui <- shiny::fluidPage(
       
       
       
-      
+      #------------------------------------------------------------------------
       # Step 6: numerator 
-      # select a numerator(metric) variable:pulldown menu
+      #------------------------------------------------------------------------
+            # select a numerator(metric) variable:pulldown menu
       #shiny::selectInput(
       shinyWidgets::pickerInput(
         inputId = 'selectedVar4num',
@@ -230,8 +249,9 @@ ui <- shiny::fluidPage(
       
 
       
-      
+      #------------------------------------------------------------------------
       # Step 7: denominator
+      #------------------------------------------------------------------------
       # 2023-update
       # the denominator pane
       # shiny::conditionalPanel(
@@ -263,8 +283,9 @@ ui <- shiny::fluidPage(
           `live-search` = TRUE)
       ),
       
-      
+      #------------------------------------------------------------------------
       # Step 8: multiplier
+      #------------------------------------------------------------------------
       # select a multiplier
       
       shiny::radioButtons(
@@ -281,8 +302,9 @@ ui <- shiny::fluidPage(
         selected = 0
       ),
       
-      
-      # Step 9: Submit button 
+      #------------------------------------------------------------------------
+      # Step 9: Submit button
+      #------------------------------------------------------------------------
       # 2023-update-item:
       shiny::tags$label("Step 9: Click below to populate the graph"),
       shiny::tags$br(),
@@ -292,7 +314,9 @@ ui <- shiny::fluidPage(
                           label = "Submit"),
       
 
+      #------------------------------------------------------------------------
       # radio-button for page layout
+      #------------------------------------------------------------------------
       shiny::radioButtons(
         inputId = "selectPageLayout",
         label = "Step 10: Select page layout and click the button below to download",
@@ -321,10 +345,16 @@ ui <- shiny::fluidPage(
 
 server <- function(input, output, session) {
   # the following rv is used to store the choice of a service over time
-  rv <- shiny::reactiveValues(maxPeerSelected=sizeOfMuniucipalities,
+  
+  
+  
+  
+  rv <- shiny::reactiveValues(maxPeerSelected=sizeOfMuniucipalities-1,
                               denominatorUsed=FALSE,
-                              selectAvg=FALSE
-                              
+                              selectAvg=FALSE,  # to be removed soon
+                              avgRendering=FALSE,
+                              sysAvgRendering=FALSE,
+                              avg_case=FALSE
                               )
   
   # w <- waiter::Waiter$new()
@@ -358,13 +388,13 @@ server <- function(input, output, session) {
     base::message("===== observeEvent(input$selectedCity: start ===============")
     
     
-    # print("observeEvent:city change: current settings=")
-    # print("current city=")
-    # print(input$selectedCity)
+    print("observeEvent:city change: current settings=")
+    print("current city=")
+    print(input$selectedCity)
     
     
 
-    # create a new peer-group set: it is the complement of the target city
+    # create a new peer-group set: it is the complement of the base(target) city
     updatedPeerGroup <- citylabel[!citylabel %in% c(input$selectedCity)]
     
     
@@ -376,12 +406,12 @@ server <- function(input, output, session) {
     
     
     # 2023-10 update
-    # rendering option must be reset to the default whenever a base-city is
-    # changed in order to avoid an inconsistent state in steps 2/3
-    # change in the base city resets the set of peers => this means
-    # average calculation is impossible in step 2, i.e., 
-    # average option cannot be sustained
-    # reset step 2 to 0
+    # rendering option must be reset to the default 
+    # whenever a base-city is changed to avoid an inconsistent state in steps 2/3
+    # A change in the base city resets the set of peers => this means 
+    # the previous average calculation state must be discarded
+    # 
+    # reset the state of Step 2 to 0
     
     
     
@@ -390,7 +420,7 @@ server <- function(input, output, session) {
     
     
     
-    if (!is.null(rv$avgRendering)){
+    if (!is.null(rv$avgRendering) ){
       
       
       # print("This is not very first time: base-city upate")
@@ -399,10 +429,11 @@ server <- function(input, output, session) {
       
       
       if (input$selectRenderingType == 1){
+        # rever to state 0 
         updateRadioButtons(inputId = "selectRenderingType",
                                         selected = 0)
-        
-        rv$selectAvg <- FALSE
+        rv$avgRendering <- FALSE
+        #rv$selectAvg <- FALSE  # to be removed soon
         
         
         # print("input$selectRenderingType=")
@@ -430,9 +461,33 @@ server <- function(input, output, session) {
       
     } else {
       
-      # print("very first time: base-city upate")
+      # print("very first time: base-city update")
       
     }
+    
+    
+    if (!is.null(rv$sysAvgRendering) ){
+      
+      
+      # print("This is not very first time: base-city upate")
+      # print("current rv$sysAvgRendering=")
+      # print(rv$sysAvgRendering)
+      
+      
+      if (input$selectRenderingType == 2){
+        updateRadioButtons(inputId = "selectRenderingType",
+                           selected = 0)
+        rv$sysAvgRendering <- FALSE
+        #rv$selectAvg <- FALSE  # to be removed soon
+        
+        
+        # print("input$selectRenderingType=")
+        # print(input$selectRenderingType)
+        
+      }
+    }
+    
+    
 
     
     # update the PickerInput with updatedPeerGroup
@@ -482,7 +537,7 @@ server <- function(input, output, session) {
     # print("input$selectRenderingType=")
     # print(input$selectRenderingType)
     
-    
+    updatedPeerGroup <- citylabel[!citylabel %in% c(input$selectedCity)]
     
     if (input$selectRenderingType == 0){
       rv$lastRendering <- 0
@@ -494,12 +549,13 @@ server <- function(input, output, session) {
       # 
       
       
-      # print("Intial default case or A-to-I switch case")
+      print("Intial default case or A-to-I switch case")
       
       # update the limit
       rv$maxPeerSelected <- maxPeerSelection4I
       # update the indicator variable 
-      rv$avgRendering <- FALSE 
+      rv$avgRendering <- FALSE
+      rv$sysAvgRendering <- FALSE
       
       
       # print("indivisual-case: current values")
@@ -507,31 +563,36 @@ server <- function(input, output, session) {
       # print(rv$maxPeerSelected)
       # print("rv$avgRendering=")
       # print(rv$avgRendering)
-      # print("rv$currentPeerGroup=")
-      # print(rv$currentPeerGroup)
-      # print("input$peerGroup=")
-      # print(input$peerGroup)
+      print("rv$currentPeerGroup=")
+      print(rv$currentPeerGroup)
+      print("input$peerGroup=")
+      print(input$peerGroup)
       
       
       if (is.null(rv$currentPeerGroup)) {
         # a User has not yet reached to Step 3 (peer cities)
         
         
-        # print("peerGroup is still NULL")
+        print("peerGroup is still NULL")
         
         
         shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
+                                        choices = updatedPeerGroup,
+                                        selected = character(0),
                                         #selected = rv$currentPeerGroup,  #character(0),
                                         options=list(`max-options` = maxPeerSelection4I))
         
       } else if ( length(rv$currentPeerGroup) <= maxPeerSelection4I){
-        
+        print("not yet reached to the max")
         
         # print("no need to truncate the peer-group set")
-        
-        
+        # remove the base city if it is included
+        updatedSelected <- rv$currentPeerGroup[!rv$currentPeerGroup %in% c(input$selectedCity)]
+        print("updatedSelected=")
+        print(updatedSelected)
         # no action necessary
         shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
+                                        choices = updatedPeerGroup,
                                         selected = rv$currentPeerGroup,  #character(0),
                                         options=list(`max-options` = maxPeerSelection4I))
         
@@ -539,21 +600,22 @@ server <- function(input, output, session) {
         # must truncate the set to <= 5
         
         
-        # print("peerGroup must be truncated to the length of 5")
+        print("peerGroup must be truncated to the length of 5")
+        # remove the base city if included
+        updatedSelected <-rv$currentPeerGroup[!rv$currentPeerGroup %in% c(input$selectedCity)]
+        tobecut <- updatedSelected[1:5]
         
-        
-        tobecut <- rv$currentPeerGroup[1:5]
-        
-        
-        # print("tbecut:length=")
-        # print(length(tobecut))
+        print("tbecut:length=")
+        print(length(tobecut))
         
         
         shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
                                         #choices = tobecut, 
+                                        choices = updatedPeerGroup,
                                         selected = tobecut,  #character(0),
+                                        #stateInput = TRUE,
                                         options=list(`max-options` = maxPeerSelection4I))
-        rv$currentPeerGroup<- tobecut
+        rv$currentPeerGroup <- tobecut
       }
       
       
@@ -565,56 +627,121 @@ server <- function(input, output, session) {
       
       
       
-    } else if (input$selectRenderingType == 1)  {
-      rv$lastRendering <- 1
-      # I to A case
-      # average-line rendering
-      # the size of the peerGroup is more than 5
-      
-      
-      # print("I to A case")
-      
-      
-      rv$maxPeerSelected <- sizeOfMuniucipalities
-      rv$avgRendering = TRUE
-      
-      
-      # print("average-case: current values")
-      # print("rv$maxPeerSelected=")
-      # print(rv$maxPeerSelected)
-      # print("rv$avgRendering=")
-      # print(rv$avgRendering)
-      # print("rv$lastPeerGroup=")
-      # print(rv$lastPeerGroup)
-      # print("rv$currentPeerGroup=")
-      # print(rv$currentPeerGroup)
-      # 
-      # print("update rv$currentPeerGroup")
-      
-      rv$lastPeerGroup <- rv$currentPeerGroup
-      
-      rv$currentPeerGroup <- input$peerGroup
-      
-      
-      # print("after update: rv$currentPeerGroup=")
-      # print(rv$currentPeerGroup)
-      # 
-      # print("input$lpeerGroup=")
-      # print(input$peerGroup)
-      
-      
-      shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
-                                      selected = rv$currentPeerGroup, #character(0),
-                                      options=list(`max-options` = sizeOfMuniucipalities))
-      
-      if ((input$selectRenderingType == 1) && (is.null(input$peerGroup))){
-        print("!!!!!!!!!!!! Warning: for average-cases, choose at least one peer city !!!!!!!!!!!!")
-        
-      }
+
       
     } else {
-      # this is unlikely
-      print("!!!!!!!!!! warning: selectRenderingType is neither 0 or 1 !!!!!!!!!!")
+      # -----------------------------------------------------------------------
+      # for cases 1 and 2
+      
+      if (input$selectRenderingType == 1) {
+        print("state 1 case: average")
+        # print("lastRendering=")
+        # print(rv$lastRendering)
+
+        
+
+        # I to A case
+        # average-line rendering
+        # the size of the peerGroup is more than 5
+
+        # print("I to A case")
+        
+        
+        rv$maxPeerSelected <- sizeOfMuniucipalities-1
+        rv$avgRendering <- TRUE
+        rv$sysAvgRendering <- FALSE
+        
+        # print("average-case: current values")
+        # print("rv$maxPeerSelected=")
+        # print(rv$maxPeerSelected)
+        # print("rv$avgRendering=")
+        # print(rv$avgRendering)
+        # print("rv$lastPeerGroup=")
+        # print(rv$lastPeerGroup)
+        # print("rv$currentPeerGroup=")
+        # print(rv$currentPeerGroup)
+        # 
+        
+        rv$lastPeerGroup <- rv$currentPeerGroup
+        
+
+        
+        # # From-state-2 case the following set is all cities
+        print("rv$currentPeerGroup=")
+        print(rv$currentPeerGroup)
+        # # From-state-2 case the following set is all cities
+        print("input$lpeerGroup=")
+        print(input$peerGroup)
+        
+        # for the from-state-2 case, the base city must be removed
+        updatedGroup <- citylabel[!citylabel %in% c(input$selectedCity)]
+        updatedSelected <- rv$currentPeerGroup[!rv$currentPeerGroup %in% c(input$selectedCity)]
+        rv$currentPeerGroup <- updatedSelected
+        
+        print("updatedGroup=")
+        print(updatedGroup)
+        print("after update: rv$currentPeerGroup=")
+        print(rv$currentPeerGroup)
+        
+        
+        # change after state 2 was added in 2024
+        # clear the selected set any way
+        # shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
+        #                                 selected = rv$currentPeerGroup, #character(0),
+        #                                 options=list(`max-options` = sizeOfMuniucipalities -1))
+        shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
+                                        choices = updatedGroup,
+                                        selected = updatedSelected,
+                                        #stateInput = TRUE,
+                                        options=list(`max-options` = sizeOfMuniucipalities -1))
+        
+        rv$lastRendering <- 1
+        
+        if ((input$selectRenderingType == 1) && (is.null(input$peerGroup))){
+          print("!!!!!!!!!!!! Warning: for average-cases, choose at least one peer city !!!!!!!!!!!!")
+          
+        }
+        
+        
+      } else if (input$selectRenderingType == 2){
+        # new block : this is a partial change of the above option ==1 block
+        # print("state 2 case: System Average")
+        # print("lastRendering=")
+        # print(rv$lastRendering)
+        rv$lastRendering <- 2
+        # I to A case
+        # average-line rendering
+        # the size of the peerGroup is more than 5
+        
+        
+        print("State 2 system average case")
+        
+        
+        rv$maxPeerSelected <- sizeOfMuniucipalities
+        rv$sysAvgRendering <- TRUE
+        rv$avgRendering <- FALSE
+        #rv$avg_case <- TRUE
+
+        rv$lastPeerGroup <- rv$currentPeerGroup
+        
+        # this is different from the option == 1 case
+        # rv$currentPeerGroup <- input$peerGroup
+        # all minucipalities: citylabel
+        rv$currentPeerGroup <- citylabel
+        
+        
+        # update: all selected
+        shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
+                                        choices = citylabel,
+          selected = citylabel, #rv$currentPeerGroup, #character(0),
+          #stateInput=FALSE,
+          options=list(`max-options` = sizeOfMuniucipalities))
+        
+        
+        
+        
+        
+      }
       
       
       
@@ -665,7 +792,7 @@ server <- function(input, output, session) {
     # print(input$selectRenderingType)
     
     
-      
+    # warning: average is selected and empty peerGroup
     if ((input$selectRenderingType == 1) && (is.null(input$peerGroup))){
       
       
@@ -734,8 +861,10 @@ server <- function(input, output, session) {
       
       
       
-    } else {
-      
+    } else if (input$selectRenderingType == 2) {
+      print("System Average case: set all selected")
+      # input $peerGroup must be update or 
+      # 
     }
 
     
@@ -1244,7 +1373,17 @@ server <- function(input, output, session) {
     base::message("==== benchmarking_plot: start-time=",
     as.POSIXct(Sys.time(), tz = "EST5EDT"))
 
-
+    
+    # new flag variable for average/System_average cases
+    rv$avg_case <- if (rv$avgRendering || rv$sysAvgRendering) TRUE else FALSE
+    print("rv$avgRendering=")
+    print(rv$avgRendering)
+    print("rv$sysAvgRendering=")
+    print(rv$sysAvgRendering)
+    print("rv$avg_case=")
+    print(rv$avg_case)
+    
+    
     # The following setting ensures that 
     # peer-group membership is not reactively (instantaneously) updated;
     # the current number of members seems to be too many to reactively handle
@@ -1258,16 +1397,21 @@ server <- function(input, output, session) {
     # input$peerGroup does not immediately update its value after a UI change
     # therefore use rv$currentPeerGroup instead
     
-    
+    # system average case, currentPeerGroup might be empty
     checkedM <- rv$currentPeerGroup
+    checkedM <- if (rv$sysAvgRendering) citylabel else checkedM
+    
+    
+    
+    
+    
     
     
     print("input$peerGroup: checkedM=")
     print(checkedM)
-    print("after isolation statement")
     print("rv$currentPeerGroup=")
     print(rv$currentPeerGroup)
-    print("input$peerGroup after isolation=")
+    print("input$peerGroup=")
     print(input$peerGroup)
     
     
@@ -1296,7 +1440,7 @@ server <- function(input, output, session) {
     # -------------------------------------------------------------------------
     
     
-    print("running validation test")
+    # print("running validation test")
     
     
     
@@ -1319,13 +1463,13 @@ server <- function(input, output, session) {
     # variable
     
     
-    print("before req block: sanity check")
-    print("input$selectedCity=")
-    print(input$selectedCity)
-    print("input$selectedService=")
-    print(input$selectedService)
-    print("input$selectedVar4num=")
-    print(input$selectedVar4num)
+    # print("before req block: sanity check")
+    # print("input$selectedCity=")
+    # print(input$selectedCity)
+    # print("input$selectedService=")
+    # print(input$selectedService)
+    # print("input$selectedVar4num=")
+    # print(input$selectedVar4num)
     
     
     
@@ -1380,25 +1524,32 @@ server <- function(input, output, session) {
     
     baseCity = input$selectedCity
     
-    
-# 2023 addition
-    if (input$selectRenderingType == 1) {
-      # default case
-      # individual rendering
-      rv$selectAvg<- TRUE
-    } else {
-      rv$selectAvg<- FALSE
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# 2023 addition : to be removed in2024
+    # if (input$selectRenderingType == 1) {
+    #   # default case
+    #   # individual rendering
+    #   rv$selectAvg<- TRUE
+    # } else {
+    #   rv$selectAvg<- FALSE
+    # 
+    # }
 
-    }
-    
     
     # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-    print("current state of selectRenderingType(0 or 1)=")
-    print(input$selectRenderingType)
-    print("rv$selectAvg=")
-    print(rv$selectAvg)
-    # print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+    # 
+    # 
+    # print("current state of selectRenderingType(0 or 1 or 2)=")
+    # print(input$selectRenderingType)
+    # print("rv$avgRendering=")
+    # print(rv$avgRendering)
+    # print("rv$sysAvgRendering=")
+    # print(rv$sysAvgRendering)
     
+    
+    
+    # print("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     #if (rv$selectAvg && length(input$peerGroup) == 0){
       #shiny::validate("Please select at least one comaprison municipality")
@@ -1726,9 +1877,11 @@ server <- function(input, output, session) {
       # test with a common method
       # dt, selectedService, selectedVar4num, group, selectedYears
       #--------------------------------------------------------------------------
-      data_pg_nm <-get_bd_matrix_data(bd_data, input$selectedService, 
+      #
+
+      data_pg_nm <-get_bd_matrix_data(bd_data, input$selectedService,
                    input$selectedVar4num, checkedM, selectedYearsC)
-      
+
       
       # print("using a common method")
       # print("data_pg_nm=")
@@ -1793,10 +1946,9 @@ server <- function(input, output, session) {
         # print("data_pg_dm=")
         # print(data_pg_dm)
         
-        
-        data_pg_dm <-get_bd_matrix_data(bd_data, input$selectedService, 
+
+        data_pg_dm <-get_bd_matrix_data(bd_data, input$selectedService,
                      input$selectedVar4denom, checkedM, selectedYearsC)
-        
         
         # print("using a common method")
         # print(data_pg_dm)
@@ -1934,7 +2086,12 @@ server <- function(input, output, session) {
     if (!is.null(checkedM)) {
       # re-organize data with a rowname
       data4plot_raw <- rbind(t(tmpMatrixScQ)[, 1], t(summarizedPG[, 3]))
-      rownames(data4plot_raw) <- c(baseCity, "Average")
+      
+      rownames(data4plot_raw) <- if (rv$sysAvgRendering) c(baseCity, "System Average") else c(baseCity, "Average")
+      
+      
+      
+      
     } else {
       # do nothing for no-peer-group case, 
       # i.e., rendering the selected city only
@@ -2062,36 +2219,43 @@ server <- function(input, output, session) {
     # print(rv$avgRendering)
     
     # checking the current selected comp. cities
-    # print("checkedM=")
-    # print(checkedM)
+    print("checkedM=")
+    print(checkedM)
     
     # setting up "checkedMx" that is "checkedM" customized for average cases
     checkedMx <-c()
     if (rv$avgRendering){
       checkedMx <- c(input$selectedCity,"Average")
+    } else if (rv$sysAvgRendering){
+      # to be checked later
+      checkedMx <- c(input$selectedCity,"System Average")
     } else {
       checkedMx <-c(input$selectedCity, checkedM)
     }
     
-    # print("checkedMx=")
-    # print(checkedMx)
+    print("checkedMx=")
+    print(checkedMx)
     
     # preparing the palette for color
-    
+
+    # indv_palette <- color_palette_mpty_indv(input$selectedCity, checkedM, 
+    #                                         rv$avgRendering)
     indv_palette <- color_palette_mpty_indv(input$selectedCity, checkedM, 
-                                            rv$avgRendering)
-    
+                                            rv$avg_case)    
     
     
     # print("indv_palette=")
     # print(indv_palette)
-    # print(str(indv_palette))
+    # # print(str(indv_palette))
     # print("indv_palette[checkedMx]=")
     # print(indv_palette[checkedMx])
     
     # preparing the palette for shape
+    # indv_shape_list <- shape_no_list(input$selectedCity, checkedM, 
+    #                                  rv$avgRendering)
     indv_shape_list <- shape_no_list(input$selectedCity, checkedM, 
-                                     rv$avgRendering)
+                                     rv$avg_case)
+    
     
     # print("new shape list=")
     # print(indv_shape_list[checkedMx])
@@ -2165,7 +2329,9 @@ server <- function(input, output, session) {
     # incrementally adding optional items
     # collective average line instead of individual lines for the peer-group 
     # also overlaying points
-    if (rv$avgRendering) {# if (input$selectAvg) {
+    # 2024 change
+    if (rv$avg_case) {
+    #if (rv$avgRendering) {# if (input$selectAvg) {
       
 #######################################
       # average-case (two-line case: 2nd)
@@ -2184,9 +2350,12 @@ server <- function(input, output, session) {
       legend_label_set<- c("Base\nmunicipality","Average of\ncomparison\nmunicipalities")
       breakset_c <- names(indv_palette[checkedMx])
       breakset_s <- names(indv_shape_list[checkedMx])
-      print("breakset+")
-      print(breakset_c)
-      print(breakset_s)
+      
+      # print("breakset+")
+      # print(breakset_c)
+      # print(breakset_s)
+      
+      
       # add an average line
       plt1 <- plt1 +
         
@@ -2459,7 +2628,7 @@ server <- function(input, output, session) {
     
     peerGroupList <- ""
     if (!is.null(checkedM)) {
-      peerGroupList <- stringr::str_wrap(
+      peerGroupList <- if (rv$sysAvgRendering) "All participating municipalities" else stringr::str_wrap(
         paste(checkedM, collapse = ", ")
         , width = 80)
     }
@@ -2492,7 +2661,8 @@ server <- function(input, output, session) {
     
     # adding title/caption data
     # print("adding a Title/SubTitle")
-    if (rv$avgRendering) {#if (input$selectAvg) {
+    if (rv$avg_case) {    
+    #if (rv$avgRendering) {#if (input$selectAvg) {
       # with the average line
       plt1 <- plt1 +  ggplot2::labs(title = titleText,
                            subtitle = msg_no_base_m_data,
