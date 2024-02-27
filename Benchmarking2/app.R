@@ -2300,7 +2300,11 @@ server <- function(input, output, session) {
         ) 
       ) +
       
-      
+      ggplot2::scale_y_continuous(name = "Value", labels = scales::comma)
+    
+    if (!rv$sysAvgRendering){
+    
+    plt1 <- plt1 +
       # new way 
       ggplot2::geom_line(
         linejoin ="round",
@@ -2316,10 +2320,11 @@ server <- function(input, output, session) {
           # color = catgry
         ),
         size = 4,
-      ) +
+      ) 
 
-      ggplot2::scale_y_continuous(name = "Value", labels = scales::comma) 
-
+    }
+    
+    
     # end of the base-line plot: this is the case 1( base/numeric only)
     
     
@@ -2338,65 +2343,63 @@ server <- function(input, output, session) {
 #######################################
       
       if (!is.null(rv$currentPeerGroup)){
-      # no empty peer group
-      # case 2A
-      print("========== average case ")
+        # no empty peer group
+        # case 2A
+        print("========== average case ")
         
-      data4plot_pgx <- data4plot_pgx |> 
+        data4plot_pgx <- data4plot_pgx |>
           dplyr::mutate_at(c('Year'), as.integer)
-      yearsetAvg <- data4plot_pgx$Year
-      
+        yearsetAvg <- data4plot_pgx$Year
         
-      legend_label_set<- c("Base\nmunicipality","Average of\ncomparison\nmunicipalities")
-      breakset_c <- names(indv_palette[checkedMx])
-      breakset_s <- names(indv_shape_list[checkedMx])
-      
-      # print("breakset+")
-      # print(breakset_c)
-      # print(breakset_s)
-      
-      
-      # add an average line
-      plt1 <- plt1 +
         
-        ggplot2::geom_ribbon(
-          data = data4plot_pgx,
+        legend_label_set <-
+          c("Base\nmunicipality",
+            "Average of\ncomparison\nmunicipalities")
+        breakset_c <- names(indv_palette[checkedMx])
+        breakset_s <- names(indv_shape_list[checkedMx])
+        
+        # print("breakset+")
+        # print(breakset_c)
+        # print(breakset_s)
+        
+        # add an average line
+        plt1 <- plt1 +
+          ggplot2::geom_ribbon(
+            data = data4plot_pgx,
+            
+            alpha = 0.15,
+            color = NA,
+            # this erases boundary lines
+            ggplot2::aes(
+              x = Year,
+              y = quotient,
+              ymin = quotient - ci,
+              ymax = quotient + ci,
+              fill = "95%\nConfidence\nInterval"
+            )
+          ) +
+          ggplot2::geom_line(data = data4plot_pgx,
+                             #color="#7BAFD4",
+                             linewidth = 2,
+                             ggplot2::aes()) +
           
-          alpha=0.15,
-          color=NA,  # this erases boundary lines
-          ggplot2::aes(
-            x = Year,
-            y = quotient,
-            ymin = quotient - ci,
-            ymax = quotient + ci,
-            fill= "95%\nConfidence\nInterval"
-          )
-        ) +
-        ggplot2::geom_line(
-          data = data4plot_pgx,
-          #color="#7BAFD4",
-          linewidth = 2,
-          ggplot2::aes(
-          )
-        ) + 
-        
-        ggplot2::scale_x_continuous(breaks= yearsetAvg) +
-        
-        
-        ggplot2::geom_point(
-          data = data4plot_pgx,
-          #color="#7BAFD4",
-          ggplot2::aes(
-            shape = catgry,
-          ),
-          size = 4
-        ) + 
-        ggplot2::scale_color_manual(name="", values=indv_palette[checkedMx], breaks = breakset_c) +
-        ggplot2::scale_shape_manual(name = "", values = indv_shape_list[checkedMx], breaks = breakset_s) +
-        ggplot2::scale_fill_manual(name = "    ", values = c("95%\nConfidence\nInterval"="#7BAFD4")
-                                 )
-      # wider key space for a CI case
-      key_space <- 45
+          ggplot2::scale_x_continuous(breaks = yearsetAvg) +
+          
+          
+          ggplot2::geom_point(data = data4plot_pgx,
+                              #color="#7BAFD4",
+                              ggplot2::aes(shape = catgry,),
+                              size = 4) +
+          ggplot2::scale_color_manual(name = "",
+                                      values = indv_palette[checkedMx],
+                                      breaks = breakset_c) +
+          ggplot2::scale_shape_manual(name = "",
+                                      values = indv_shape_list[checkedMx],
+                                      breaks = breakset_s) +
+          ggplot2::scale_fill_manual(name = "    ",
+                                     values = c("95%\nConfidence\nInterval" = "#7BAFD4"))
+        # wider key space for a CI case
+        key_space <- 45
       
       } else if (is.null(rv$currentPeerGroup)) {
         # empty peer => degenerated into base-only case (case 1)
@@ -2633,11 +2636,15 @@ server <- function(input, output, session) {
         , width = 80)
     }
     
+    baseCityline <- if (!rv$sysAvgRendering) paste0("Base Municipality: ",
+                                                     baseCity) else ""
+    
     
     subtitleText <- paste(
       c(
-        "Base Municipality: ",
-        baseCity,
+        # "Base Municipality: ",
+        # baseCity,
+        baseCityline,
         "\nService: ",
         serviceNameFull,
         "\nComparison Municipalities: ",
