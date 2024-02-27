@@ -171,7 +171,7 @@ ui <- shiny::fluidPage(
         choices = list(
           "Individually compare with up to 5 municipalities" = 0,
           "Compare with an average of as many municipalities as you like" = 1,
-          "Comppare with the average of all jurisdictions" =2
+          "System average of all jurisdictions" =2
         ),
         selected = 0
       ),
