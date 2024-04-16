@@ -2,7 +2,7 @@
 :toclevels: 3
 :icons: font 
 
-= Dashboard 2.0: Functioanl specifications
+= Dashboard 2.0: Functional specifications
 
 toc::[]
 
@@ -15,7 +15,7 @@ toc::[]
 * Service selector
 * year selector
 
-* city-chechbox-group 
+* city-checkbox-group 
 
 ** select|unselect-all checkbox
 

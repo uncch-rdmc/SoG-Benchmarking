@@ -17,17 +17,30 @@ library(showtext)
 library(ggpubr)
 
 
+
+
+dataUpdatedDayStamp <- "February 2, 2024"
+
+
 # -----------------------------------------------------------------------------
 # read back the saved benchmarking data files
 # -----------------------------------------------------------------------------
 
 # completed benchmarking data file
-# 2023-10 uupdate uses 6
+# 2023-10 update uses 6
 #bd_data <-readr::read_rds(file="bd_data_completed5.rds")
+#
+# The file below might not be necessary to be read back 
+# if this data file is created at an upstream step
 bd_data <-readr::read_rds(file="bd_data_completed6.rds")
+
+
 # lookup-table file
+# NOT created on the fly 
 # This file was considerably updated in 2023-OCT
-all_service_abbrev_to_full<-readr::read_rds(file = "all_service_abbrev_to_full.rds")
+# This file is no longer necessary to read
+# because its derived objects are now directly read back.
+# all_service_abbrev_to_full<-readr::read_rds(file = "all_service_abbrev_to_full.rds")
 
 # variable-name-to-label data files
 #all_varNameToLabel<-readr::read_rds(file = "all_varNameToLabel5.rds")
@@ -37,7 +50,7 @@ all_varNameToLabel<-readr::read_rds(file = "all_varNameToLabel6.rds")
 # all_varNameToLabel <- all_varNameToLabel |> dplyr::filter(!(var_name=="qhore09" & var_order==13))
 # readr::write_rds(all_varNameToLabel, file = "~/github/sog/bm2/SoG-Benchmarking/data-prep/all_varNameToLabel5.rds")
 
-# metric-defintion table
+# metric-definition table
 # metric_def_data <- readr::read_rds(file="metric_def_data.rds")
 # The above file missing def data for scio-economic data (category 14)
 # The above file is no longer used as of 2023-OCT
@@ -110,39 +123,54 @@ v2lallinOne <- readr::read_rds(file = "v2lallinOne.rds")
 # rm(valueN, valueD, vl)
 
 
-
-
+# 2024-04-09
+# The following 3 hash tables can be loaded by reading back serialized files
+# 
+# 1 srvclngToShrtRefLst
 # The update of 2022-10-27 
 # long name to acronym list for selectInput
 # replaces the above s_list
-srvclngToShrtRefLst <-list()
-for (i in 1:dim(all_service_abbrev_to_full)[1]) {
-  
-  srvclngToShrtRefLst[[all_service_abbrev_to_full$Full[i]]] <- all_service_abbrev_to_full$lc[i]
-}
+# 
+# srvclngToShrtRefLst <-list()
+# for (i in 1:dim(all_service_abbrev_to_full)[1]) {
+#   
+#   srvclngToShrtRefLst[[all_service_abbrev_to_full$Full[i]]] <- all_service_abbrev_to_full$lc[i]
+# }
+
+# now read back
+srvclngToShrtRefLst <- readr::read_rds(file = "srvclngToShrtRefLst.rds")
+
+# 2 srvclngToShrtRefLstWoc
 # without census
-srvclngToShrtRefLstWoc <-list()
-for (i in 1:dim(all_service_abbrev_to_full)[1]) {
-  if (all_service_abbrev_to_full$lc[[i]]=="census"){
-    next
-  }
-  srvclngToShrtRefLstWoc[[all_service_abbrev_to_full$Full[i]]] <- all_service_abbrev_to_full$lc[i]
-}
+# srvclngToShrtRefLstWoc <-list()
+# for (i in 1:dim(all_service_abbrev_to_full)[1]) {
+#   if (all_service_abbrev_to_full$lc[[i]]=="census"){
+#     next
+#   }
+#   srvclngToShrtRefLstWoc[[all_service_abbrev_to_full$Full[i]]] <- all_service_abbrev_to_full$lc[i]
+# }
+# now read back
+srvclngToShrtRefLstWoc <- readr::read_rds(file = "srvclngToShrtRefLstWoc.rds")
 
 
+# 3 srv2varlbllst
 # replacement of the above service2var
-srv2varlbllst <-list()
-for (srv in srvclngToShrtRefLst){
-  # value is short form such as am
-  tmp <- all_varNameToLabel %>%
-    dplyr::filter(var_acr==srv) %>% dplyr::select(var_name, var_label)
-  name_vec  <-tmp %>% dplyr::pull(var_label)
-  # print(name_vec)
-  value_vec <- tmp %>% dplyr::pull(var_name) 
-  # print(value_vec)
-  valueLst<-stats::setNames(as.list(value_vec), name_vec)
-  srv2varlbllst[[srv]]  <- valueLst
-}
+# srv2varlbllst <-list()
+# for (srv in srvclngToShrtRefLst){
+#   # value is short form such as am
+#   tmp <- all_varNameToLabel |>
+#     dplyr::filter(var_acr==srv) |> dplyr::select(var_name, var_label)
+#   name_vec  <-tmp |> dplyr::pull(var_label)
+#   # print(name_vec)
+#   value_vec <- tmp |> dplyr::pull(var_name) 
+#   # print(value_vec)
+#   valueLst<-stats::setNames(as.list(value_vec), name_vec)
+#   srv2varlbllst[[srv]]  <- valueLst
+# }
+# 
+# now read back
+srv2varlbllst <- readr::read_rds(file = "srv2varlbllst.rds")
+
 ###############################################################################
 # data-manipulation functions
 ###############################################################################
@@ -213,7 +241,7 @@ print("---------------------------------------------------pairedPalette=")
 #fixed_s_scale <- ggplot2::scale_shape_manual(name="Legend", values = shapeNoList)
 
 
-shape_no_list <- function(target_name, peer_names, average=FALSE){
+shape_no_list <- function(target_name, peer_names, average=FALSE, systemAvg=FALSE){
   
   pp <- c()
   base <-c(19)
@@ -222,7 +250,7 @@ shape_no_list <- function(target_name, peer_names, average=FALSE){
   if (average){
     pp <- c(17)
     mpty_palette <- c(base, pp)
-    all_names <- if (length(peer_names) == length(citylabel))  c(target_name, "System Average") else c(target_name, "Average")
+    all_names <- if (systemAvg) c(target_name, "System Average") else c(target_name, "Average")
     names(mpty_palette) <- all_names
   } else if (is.null(peer_names)) {
     # target only: 19 only
@@ -252,7 +280,7 @@ shape_no_list <- function(target_name, peer_names, average=FALSE){
 }
 
 
-color_palette_mpty_indv <- function(target_name, peer_names, average=FALSE){
+color_palette_mpty_indv <- function(target_name, peer_names, average=FALSE, systemAvg=FALSE){
   pp <- c()
   base <-c("#000000")
   mpty_palette <- c()
@@ -260,7 +288,7 @@ color_palette_mpty_indv <- function(target_name, peer_names, average=FALSE){
   
   if (average){
     mpty_palette <-c("#000000", "#7BAFD4")
-    all_names <- if (length(peer_names) == length(citylabel)) c(target_name, "System Average") else  c(target_name, "Average")
+    all_names <- if (systemAvg) c(target_name, "System Average") else  c(target_name, "Average")
     
     
     

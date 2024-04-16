@@ -1,5 +1,6 @@
 library(shiny)
 source("helpers.R")
+#source("data_update.R")
 library(shinyjs)
 library(grDevices)
 library(shinyWidgets)
@@ -128,6 +129,7 @@ ui <- shiny::fluidPage(
           "and best-practice development."
         )
       )
+      
     )),
     
     ###########################################################################
@@ -705,9 +707,9 @@ server <- function(input, output, session) {
         
       } else if (input$selectRenderingType == 2){
         # new block : this is a partial change of the above option ==1 block
-        # print("state 2 case: System Average")
-        # print("lastRendering=")
-        # print(rv$lastRendering)
+        print("state 2 case: System Average")
+        print("lastRendering=")
+        print(rv$lastRendering)
         rv$lastRendering <- 2
         # I to A case
         # average-line rendering
@@ -779,17 +781,17 @@ server <- function(input, output, session) {
     
     
     
-    # print("rv$lastPeerGroup=")
-    # print(rv$lastPeerGroup)
-    # 
-    # print("rv$currentPeerGroup=")
-    # print(rv$currentPeerGroup)
-    # 
-    # print("input$peerGroup=")
-    # print(input$peerGroup)
-    # 
-    # print("input$selectRenderingType=")
-    # print(input$selectRenderingType)
+    print("rv$lastPeerGroup=")
+    print(rv$lastPeerGroup)
+
+    print("rv$currentPeerGroup=")
+    print(rv$currentPeerGroup)
+
+    print("input$peerGroup=")
+    print(input$peerGroup)
+
+    print("input$selectRenderingType=")
+    print(input$selectRenderingType)
     
     
     # warning: average is selected and empty peerGroup
@@ -862,9 +864,13 @@ server <- function(input, output, session) {
       
       
     } else if (input$selectRenderingType == 2) {
-      print("System Average case: set all selected")
+      print("System Average case: set all selected initially")
+      print("peerGroup might be modified later")
       # input $peerGroup must be update or 
       # 
+      print("current input$peerGroup=")
+      print(input$peerGroup)
+      
     }
 
     
@@ -924,11 +930,11 @@ server <- function(input, output, session) {
     # change the set of metrics according to a newly selected service
     varset4numerator <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
     print("step 5: contents check: varset4numerator: original")
-    print(varset4numerator)
+    #print(varset4numerator)
     # print("observeEvent(service): check new the changedvarset4numerator=")
     varset4numerator<- varset4numerator[order(names(varset4numerator))]
-    print("after sort: varset4numerator")
-    print(varset4numerator)
+    #print("after sort: varset4numerator")
+    #print(varset4numerator)
     print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
     print(varset4numerator[1])
     # 
@@ -1325,6 +1331,38 @@ server <- function(input, output, session) {
 
   })
   
+  # updating the survey data
+  observeEvent(input$dataUpdateConfirmation, {
+    shinyWidgets::ask_confirmation(
+      inputId = "dataUpdateAction",
+      title = NULL,
+      text = tags$b(
+        icon("file"),
+        "Do you really want to check for data updates?",
+        style = "color: #FA5858;"
+      ),
+      btn_labels = c("Cancel", "Update"),
+      btn_colors = c("#00BFFF", "#FE2E2E"),
+      html = TRUE,
+      showCloseButton =TRUE
+    )
+  })
+  
+  observeEvent(input$dataUpdateAction, {
+    if (isTRUE(input$dataUpdateAction)){
+      print("data-update will be called")
+      # call the update function here
+      # data-update logic here
+      #checkSurveyData()
+    } else {
+      print("data update was canceled")
+    }
+    
+    
+  })
+  
+  
+  
 
   #############################################################################
   # renderText(): generating the first-time-only session-starting message
@@ -1399,7 +1437,8 @@ server <- function(input, output, session) {
     
     # system average case, currentPeerGroup might be empty
     checkedM <- rv$currentPeerGroup
-    checkedM <- if (rv$sysAvgRendering) citylabel else checkedM
+    # 2024-04-09 modification
+    #checkedM <- if (rv$sysAvgRendering) citylabel else checkedM
     
     
     
@@ -2188,8 +2227,8 @@ server <- function(input, output, session) {
       
       
       
-      # print("data4plot_pgx=")
-      # print(data4plot_pgx)
+      print("data4plot_pgx=")
+      print(data4plot_pgx)
       
       
       
@@ -2241,20 +2280,20 @@ server <- function(input, output, session) {
     # indv_palette <- color_palette_mpty_indv(input$selectedCity, checkedM, 
     #                                         rv$avgRendering)
     indv_palette <- color_palette_mpty_indv(input$selectedCity, checkedM, 
-                                            rv$avg_case)    
+                                            rv$avg_case, rv$sysAvgRendering)
     
     
-    # print("indv_palette=")
-    # print(indv_palette)
+    print("indv_palette=")
+    print(indv_palette)
     # # print(str(indv_palette))
-    # print("indv_palette[checkedMx]=")
-    # print(indv_palette[checkedMx])
+    print("indv_palette[checkedMx]=")
+    print(indv_palette[checkedMx])
     
     # preparing the palette for shape
     # indv_shape_list <- shape_no_list(input$selectedCity, checkedM, 
     #                                  rv$avgRendering)
     indv_shape_list <- shape_no_list(input$selectedCity, checkedM, 
-                                     rv$avg_case)
+                                     rv$avg_case, rv$sysAvgRendering)
     
     
     # print("new shape list=")
@@ -2337,7 +2376,7 @@ server <- function(input, output, session) {
     # 2024 change
     if (rv$avg_case) {
     #if (rv$avgRendering) {# if (input$selectAvg) {
-      
+      print("rv$avg_case starts here")
 #######################################
       # average-case (two-line case: 2nd)
 #######################################
@@ -2358,9 +2397,9 @@ server <- function(input, output, session) {
         breakset_c <- names(indv_palette[checkedMx])
         breakset_s <- names(indv_shape_list[checkedMx])
         
-        # print("breakset+")
-        # print(breakset_c)
-        # print(breakset_s)
+        print("breakset=")
+        print(breakset_c)
+        print(breakset_s)
         
         # add an average line
         plt1 <- plt1 +
@@ -2631,7 +2670,9 @@ server <- function(input, output, session) {
     
     peerGroupList <- ""
     if (!is.null(checkedM)) {
-      peerGroupList <- if (rv$sysAvgRendering) "All participating municipalities" else stringr::str_wrap(
+      peerGroupList <- if (rv$sysAvgRendering && 
+                           length(checkedM) == length(citylabel)
+                           ) "All participating municipalities" else stringr::str_wrap(
         paste(checkedM, collapse = ", ")
         , width = 80)
     }
@@ -2654,7 +2695,7 @@ server <- function(input, output, session) {
         paste("\ngenerated at: ", 
         as.character(lubridate::with_tz(Sys.time(), tzone="EST5EDT"), 
                      usetz=TRUE), sep=""),
-        "\n\nData updated on: February 2, 2024\n\n\n"
+        "\n\nData updated on: ", dataUpdatedDayStamp,"\n\n\n"
       ),
       collapse = ""
     )
