@@ -1,0 +1,50 @@
+= How to update Qualtrics Survey Data (Draft)
+
+:imagesdir: image
+:toc: right
+:toclevels: 3
+:icons: font
+
+
+== Update Cycle
+
+=== Current: How to generate new data files
+. To create a working directory
+. To copy necessary data files and script files into the above working directory
+* Data files to be used
+** `bd_startup_data.rds`: This file contains the credentials to access Qualtrics server
+** `Populations.csv`: used for metric definitions (obtained from the SoG)
+** `MetricNames.csv`: metadata for metrics to be used (obtained from the SoG)
+** `bd_census_data_2023.rds`: population data
+** `all_service_abbrev_to_full.rds`: reference table
+
+
+* Script files to generate data files for the Dashboard
+** `SoG-Benchmarking/data-prep/2024-04-25/bd_data_update_all_steps.R`
+** `SoG-Benchmarking/data-prep/2024-04-25/support.R`
++
+These files are stored in `SoG-Benchmarking/data-prep/2024-04-25/` or a later date directory
+
+. To run `bd_data_update_all_steps.R` from RStudio (here assuming that RStudio's working directory is set to the above newly created working directory).  
+If this script file is successfully executed, 8 rds files and one MS Excel file are created in the working directory. 
++
+The following 7 rds files are required to run the Dashboard and must be copied to `SoG-Benchmarking/Benchmarking2` directory.
+
+* `bd_data_completed6.rds`
+* `all_varNameToLabel6.rds`
+* `v2lallinOne.rds`
+* `all_vname2def.rds`
+* `srvclngToShrtRefLst.rds`
+* `srvclngToShrtRefLstWoc.rds`
+* `srv2varlbllst.rds`
+
+`bd_startup_data.rds` is to be used for the future data-generation.
+`CompleteAudited_YYYY-MM-DD_TTTTTT.xlsx` is sent to its recipients for their review.
+
+=== Future update
+==== Implicit assumptions in the data-generation script
+The above data-generation script (`bd_data_update_all_steps.R`) assumes that if there are multiple rows (survey responses) for a given combination of fiscal year, municipality and service, the latest updated and more column-filled row is automatically chosen. If this assumption does not hold true, i.e., there are ambiguous or tied cases, a superseded (old or revoked) row must be removed manually from the Qualtrics server before running this script.
+
+==== How to deal with changes to Metric definitions
+Whenever the definition of a metric is updated, the above data-generation script (`bd_data_update_all_steps.R`) must be updated; Such an update requires to update the metric-definition block of the Part II.
+
