@@ -1,5 +1,7 @@
+options(shiny.port = 8077)
 library(shiny)
-source("helpers.R")
+source("helpers_part1.R")
+source("helpers_part2.R")
 #source("data_update.R")
 library(shinyjs)
 library(grDevices)
@@ -10,6 +12,7 @@ library(DT)
 library(cowplot)
 library(flextable)
 library(grid)
+library(gridExtra)
 waiting_screen <- shiny::tagList(
   waiter::spin_wave(),
   shiny::h4("loading ...")
@@ -17,7 +20,7 @@ waiting_screen <- shiny::tagList(
 
 
 ################################################################################
-# ui defintion
+# ui definition
 ################################################################################
 ui <- shiny::fluidPage(
   waiter::useWaiter(),
@@ -74,7 +77,15 @@ ui <- shiny::fluidPage(
       border-top: 1px solid black;
       border-bottom: 1px solid black;
       font-size:16px;
-    }
+      }
+    .comparison_jurisdiction_table
+      table {
+      border-top: 1px solid black;
+      border-bottom: 1px solid black;
+      font-size:12px;
+      }
+    
+    
     #goButton{
     margin-bottom: 20px;}
     "
@@ -108,6 +119,13 @@ ui <- shiny::fluidPage(
           tags$div(
             class="metric_def_table",
             shiny::tableOutput("metricDefTable")
+          ),
+          tags$div(
+            class="comparison_jurisdiction_table", 
+            #shiny::tableOutput("jurisdictionTable"),
+            #DT::dataTableOutput("jurisdictionTable")
+            #shiny::plotOutput(outputId="jurisdictionTable")
+            shiny::tableOutput(outputId="jurisdictionTable")
           )
 
         )
@@ -121,7 +139,7 @@ ui <- shiny::fluidPage(
         
         shiny::tags$p(
           "Established in 1995, the North Carolina Benchmarking Project ",
-          "allows municipalities to compare their service ",
+          "allows jurisdictions to compare their service ",
           "and performance trends with other participating units.",
           "Benchmarking 2.0, launched in 2022",
           "streamlines data collection and analysis and ",
@@ -140,7 +158,17 @@ ui <- shiny::fluidPage(
       # #7BAFD4
       # rgba(123, 175, 212, 1)
       # 
+
+      # shinyWidgets::radioGroupButtons(
+      #   inputId = "bd_choice",
+      #   label = "choose a Dashboard:",
+      #   individual = TRUE,
+      #   choiceValues = c("others", "bi", "wsww"),
+      #   choiceNames = c("Building Inspection", "Utilities", "Other Services"),
+      #   selected = c("others")
+      # ),
       # 
+      
       #------------------------------------------------------------------------
       # Step 1: Base city
       #------------------------------------------------------------------------
@@ -149,7 +177,7 @@ ui <- shiny::fluidPage(
       shinyWidgets::pickerInput(
 
         inputId = 'selectedCity',
-        label = 'Step 1: Select your base municipality',
+        label = 'Step 1: Select your base jurisdiction',
         choices = c(citylabel),
         options = list(
           `live-search` = TRUE)
@@ -171,8 +199,8 @@ ui <- shiny::fluidPage(
         inputId = "selectRenderingType",
         label = "Step 2: Select whether you would like to:",
         choices = list(
-          "Individually compare with up to 5 municipalities" = 0,
-          "Compare with an average of as many municipalities as you like" = 1,
+          "Individually compare with up to 5 jurisdictions" = 0,
+          "Compare with an average of as many jurisdictions as you like" = 1,
           "System average of all jurisdictions" =2
         ),
         selected = 0
@@ -184,7 +212,7 @@ ui <- shiny::fluidPage(
       # select comparison municipalities
       shinyWidgets::pickerInput(
         inputId = "peerGroup",
-        label = "Step 3: Select comparison municipalities",
+        label = "Step 3: Select comparison jurisdictions",
         choices = rvllabel,
         multiple = TRUE,
         options = pickerOptions(
@@ -192,7 +220,7 @@ ui <- shiny::fluidPage(
           `live-search` = TRUE,
           `virtualScroll` = (length(citylabel) - 1),
           `max-options` = (sizeOfMuniucipalities -1),
-          `max-options-text` = "individual rendering is limited to 5 municipalities",
+          `max-options-text` = "individual rendering is limited to 5 jurisdictions",
           noneSelectedText="None"
         )
       ),
@@ -328,7 +356,7 @@ ui <- shiny::fluidPage(
       # 2023-update: moved below Step 10
       # Graph-Downloading button
       # downloadButton('downloadGraph'),
-      shiny::downloadButton(outputId = 'dwonloadImage', 
+      shiny::downloadButton(outputId = 'downloadImage', 
                             label = "Download this graph")
       
       
@@ -346,6 +374,19 @@ ui <- shiny::fluidPage(
 ###############################################################################
 
 server <- function(input, output, session) {
+  print("!!!!!!!!!!!!!! beginning of server function !!!!!!!!!!!!!!!!!!!!!!!!")
+  # print("get case=")
+  # queryStringSetG <- shiny::isolate(shiny::getQueryString())
+  #queryStringSetG <- (shiny::getQueryString())
+  # print("queryStringSetG=")
+  # print(queryStringSetG)
+  
+  #print("at the beginning of server: url_search=")
+  # note cannot access session$clientData$url_search outside of reactive context
+  # queryStringSet <- shiny::parseQueryString(shiny::isolate(session$clientData$url_search))
+  # print("queryStringSet=")
+  # print(queryStringSet)
+
   # the following rv is used to store the choice of a service over time
   
   
@@ -356,15 +397,47 @@ server <- function(input, output, session) {
                               selectAvg=FALSE,  # to be removed soon
                               avgRendering=FALSE,
                               sysAvgRendering=FALSE,
-                              avg_case=FALSE
+                              avg_case=FALSE,
+                              # serviceGroup="others",
+                              # bd_data = bd_data_others,
+                              # all_varNameToLabel = all_varNameToLabel_others,
+                              # all_vname2def = all_vname2def_others,
+                              # y_list = y_list_others,
+                              # v2lallinOne = v2lallinOne_others,
+                              # srvclngToShrtRefLst = srvclngToShrtRefLst_others,
+                              # srvclngToShrtRefLstWoc = srvclngToShrtRefLstWoc_others,
+                              # srv2varlbllst = srv2varlbllst_others,
+                              # default_selected_service = default_selected_service_others,
+                              # citylabel = citylabel_others,
+                              # sizeOfMuniucipalities = length(citylabel_others),
+                              # rvllabel = citylabel_others[-c(1)],
+                              # varset4numerator = varset4numerator_others,
+                              # varset4denominator = varset4denominator_others
+                              
+                              serviceGroup=starting_default,
+                              bd_data = bd_data,
+                              all_varNameToLabel = all_varNameToLabel,
+                              all_vname2def = all_vname2def,
+                              y_list = y_list,
+                              v2lallinOne = v2lallinOne,
+                              srvclngToShrtRefLst = srvclngToShrtRefLst,
+                              srvclngToShrtRefLstWoc = srvclngToShrtRefLstWoc,
+                              srv2varlbllst = srv2varlbllst,
+                              default_selected_service = default_selected_service,
+                              citylabel = citylabel,
+                              sizeOfMuniucipalities = length(citylabel),
+                              rvllabel = citylabel[-c(1)],
+                              varset4numerator = varset4numerator,
+                              varset4denominator = varset4denominator,
+                              jrsdctnTable = data.frame()
                               )
-  
+  # rv_ServiceGroup <- shiny::reactiveVal("others")
   # w <- waiter::Waiter$new()
 
   output$step3message <- shiny::renderText(
     {
       if ((input$selectRenderingType == 1) && (is.null(input$peerGroup))){
-        validate("For average cases, choose at least one comparison municipality")
+        validate("For average cases, choose at least one comparison jurisdiction")
       }
     }
   )
@@ -374,6 +447,241 @@ server <- function(input, output, session) {
   # ===========================================================================
   # observeEvent blocks
   # ===========================================================================
+  #
+  # fy2025 
+  # 
+  shiny::observeEvent(
+    #rv$serviceGroup, 
+    getQueryString(session)$sg, {
+      print("================ within observeEvent: direct approach  ===========")
+      currentQstring <- getQueryString(session)$sg
+      
+      print("currentQstring=")
+      print(currentQstring)
+      rv$serviceGroup <- getQueryString(session)$sg
+      print("rv$serviceGroup")
+      print(rv$serviceGroup)
+  # 
+      if (!is.null(currentQstring)) {
+        print("sg=")
+        print(currentQstring)
+        
+        
+        
+        
+        if (currentQstring == "bi") {
+          print("========================= direct bi case =========================")
+          rv$serviceGroup <- "bi"
+          
+          
+          # data loading: bi case
+          bd_data <- bd_data_bi
+          all_varNameToLabel <- all_varNameToLabel_bi
+          all_vname2def <- all_vname2def_bi
+          y_list <- y_list_bi
+          v2lallinOne <- v2lallinOne_bi
+          srvclngToShrtRefLst <- srvclngToShrtRefLst_bi
+          srvclngToShrtRefLstWoc <- srvclngToShrtRefLstWoc_bi
+          srv2varlbllst <- srv2varlbllst_bi
+          default_selected_service <- default_selected_service_bi
+          citylabel <- citylabel_bi
+          
+          varset4numerator <- varset4numerator_bi
+          varset4denominator <- varset4numerator_bi
+          
+        } else if (currentQstring == "wsww") {
+          print("========================= direct wsww case =========================")
+          rv$serviceGroup <- "wsww"
+          
+          bd_data <- bd_data_wsww
+          all_varNameToLabel <- all_varNameToLabel_wsww
+          all_vname2def <- all_vname2def_wsww
+          y_list <- y_list_wsww
+          v2lallinOne <- v2lallinOne_wsww
+          srvclngToShrtRefLst <- srvclngToShrtRefLst_wsww
+          srvclngToShrtRefLstWoc <- srvclngToShrtRefLstWoc_wsww
+          srv2varlbllst <- srv2varlbllst_wsww
+          default_selected_service <- default_selected_service_wsww
+          citylabel <- citylabel_wsww
+          
+          varset4numerator <- varset4numerator_wsww
+          varset4denominator <- varset4numerator_wsww
+          
+          
+        } else {
+          print("========================= direct others case =========================")
+          rv$serviceGroup <- "others"
+          
+          bd_data <- bd_data_others
+          all_varNameToLabel <- all_varNameToLabel_others
+          all_vname2def <- all_vname2def_others
+          y_list <- y_list_others
+          v2lallinOne <- v2lallinOne_others
+          srvclngToShrtRefLst <- srvclngToShrtRefLst_others
+          srvclngToShrtRefLstWoc <- srvclngToShrtRefLstWoc_others
+          srv2varlbllst <- srv2varlbllst_others
+          default_selected_service <- default_selected_service_others
+          citylabel <- citylabel_others
+          
+          varset4numerator <- varset4numerator_others
+          varset4denominator <- varset4numerator_others
+          
+        }
+        # update the following reactiveValue too
+        rv$citylabel<-citylabel
+        sizeOfMuniucipalities <- length(citylabel)
+        rvllabel <- citylabel[-c(1)]
+        
+        
+        # update the following parts
+        #         ui-type      input$
+        # step 1: pickerInput, selectedCity
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "selectedCity",
+          selected = citylabel[1],
+          choices = citylabel
+        )
+        
+        # step 3: pickerInput, peerGroup
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "peerGroup",
+          selected = character(0),
+          choices = citylabel[-c(1)]
+        )
+        
+        # step 4: pickerInput, selectedYears
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "selectedYears",
+          choices = y_list,
+          selected = y_list
+        )
+        # step 5: pickerInput, selectedService
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "selectedService",
+          choices = srvclngToShrtRefLstWoc,
+          selected = srvclngToShrtRefLstWoc[1]
+        )
+        
+        
+        
+        # step 6: pickerInput, selectedVar4num
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "selectedVar4num",
+          choices = c(varset4numerator),
+          selected = c(varset4numerator[1])
+        )
+        
+        
+        # step 7: pickerInput, selectedVar4denom
+        shinyWidgets::updatePickerInput(
+          session = session,
+          inputId = "selectedVar4denom",
+          choices = c(varset4denominator),
+          selected = c(varset4denominator[1])
+        )
+        
+        
+
+          
+      }
+  #         
+  #         
+  #         
+  #         
+  #         
+  #         
+
+  #         
+  #       } else if (serviceGroup[['sg']] == "others") {
+  #         print("========================= others 1 ============================")
+  #         rv$serviceGroup <- "others"
+  #         
+  #         # data loading: others case
+
+  #         
+  #         
+  #         
+  #         
+  #         
+  #         
+  #         
+  #       } else {
+  #         print("================ no query string case ================ ")
+  #         # rv$serviceGroup <- "others"
+  #         
+  #         # bd_data <- bd_data_others
+  #         # 
+  #         # all_varNameToLabel <- all_varNameToLabel_others
+  #         # 
+  #         # all_vname2def <- all_vname2def_others
+  #         # 
+  #         # y_list <- y_list_others
+  #         # 
+  #         # v2lallinOne <- v2lallinOne_others
+  #         # 
+  #         # srvclngToShrtRefLst <- srvclngToShrtRefLst_others
+  #         # 
+  #         # srvclngToShrtRefLstWoc <- srvclngToShrtRefLstWoc_others
+  #         # 
+  #         # srv2varlbllst <- srv2varlbllst_others
+  #         # 
+  #         # citylabel <-citylabel_others
+  #         # 
+  #         # sizeOfMuniucipalities <- length(citylabel)
+  #         # 
+  #         # rvllabel <- citylabel[-c(1)]
+  #         
+  #         
+  #         
+  #       }
+  #       
+  #     } else {
+  #       print("no sg value case")
+  #       rv$serviceGroup <- "others"
+  #       
+  #       bd_data <- bd_data_others
+  #       
+  #       all_varNameToLabel <- all_varNameToLabel_others
+  #       
+  #       all_vname2def <- all_vname2def_others
+  #       
+  #       y_list <- y_list_others
+  #       
+  #       v2lallinOne <- v2lallinOne_others
+  #       
+  #       srvclngToShrtRefLst <- srvclngToShrtRefLst_others
+  #       
+  #       srvclngToShrtRefLstWoc <- srvclngToShrtRefLstWoc_others
+  #       
+  #       srv2varlbllst <- srv2varlbllst_others
+  #       
+  #       default_selected_service <-default_selected_service_others
+  #       
+  #       citylabel <-citylabel_others
+  #       
+  #       sizeOfMuniucipalities <- length(citylabel)
+  #       
+  #       rvllabel <- citylabel[-c(1)]
+  #       
+  #       
+  #       
+  #       
+  #     }
+  #     
+  #     
+  #     
+  #     
+  #     
+  #     
+  #     
+    }, priority = 0
+  )
+
   #
   # ---------------------------------------------------------------------------
   # Step 1: choosing the target city 
@@ -395,16 +703,25 @@ server <- function(input, output, session) {
     print(input$selectedCity)
     
     
-
+    print("before update: citylabel=")
+    print(citylabel)
+    print("rv$citylabel=")
+    print(rv$citylabel)
+    if (!is.null(rv$serviceGroup)) {
+      print("update citylabel to rv$citylabel")
+      citylabel <- rv$citylabel
+    }
+    print("after update: citylabel=")
+    print(citylabel)   
     # create a new peer-group set: it is the complement of the base(target) city
     updatedPeerGroup <- citylabel[!citylabel %in% c(input$selectedCity)]
     
     
-    # print("updatedPeerGroup=")
-    # print(updatedPeerGroup)
-    # 
-    # print("current peerGroup=")
-    # print(input$peerGroup)
+    print("updatedPeerGroup=")
+    print(updatedPeerGroup)
+
+    print("current peerGroup=")
+    print(input$peerGroup)
     
     
     # 2023-10 update
@@ -471,9 +788,9 @@ server <- function(input, output, session) {
     if (!is.null(rv$sysAvgRendering) ){
       
       
-      # print("This is not very first time: base-city upate")
-      # print("current rv$sysAvgRendering=")
-      # print(rv$sysAvgRendering)
+      print("This is not very first time: base-city update")
+      print("current rv$sysAvgRendering=")
+      print(rv$sysAvgRendering)
       
       
       if (input$selectRenderingType == 2){
@@ -483,15 +800,15 @@ server <- function(input, output, session) {
         #rv$selectAvg <- FALSE  # to be removed soon
         
         
-        # print("input$selectRenderingType=")
-        # print(input$selectRenderingType)
+        print("input$selectRenderingType=")
+        print(input$selectRenderingType)
         
       }
     }
     
     
 
-    
+    print("within step 1 updating peerGroup")
     # update the PickerInput with updatedPeerGroup
     shinyWidgets::updatePickerInput(session=session, inputId = "peerGroup",
                              choices = updatedPeerGroup,
@@ -499,8 +816,8 @@ server <- function(input, output, session) {
                              options=pickerOptions(noneSelectedText="None"))
     
     
-    # print("after upate: current peerGroup=")
-    # print(input$peerGroup)
+    print("after upate: current peerGroup=")
+    print(input$peerGroup)
     
     
     rv$lastPeerGroup <- rv$currentPeerGroup
@@ -508,7 +825,7 @@ server <- function(input, output, session) {
     rv$currentPeerGroup <- NULL
     
     base::message("===== observeEvent(input$selectedCity: end ===============")
-  })
+  }, priority = 1)
   
   
   # ---------------------------------------------------------------------------
@@ -538,6 +855,16 @@ server <- function(input, output, session) {
     # print(rv$lastRendering)
     # print("input$selectRenderingType=")
     # print(input$selectRenderingType)
+    
+    print("citylabel=")
+    print(citylabel)
+    print("rv$citylabel=")
+    print(rv$citylabel)
+    if (!is.null(rv$serviceGroup)) {
+      citylabel <- rv$citylabel
+    }
+    print("citylabel=")
+    print(citylabel)
     
     updatedPeerGroup <- citylabel[!citylabel %in% c(input$selectedCity)]
     
@@ -646,22 +973,22 @@ server <- function(input, output, session) {
         # average-line rendering
         # the size of the peerGroup is more than 5
 
-        # print("I to A case")
+        print("I to A case")
         
         
         rv$maxPeerSelected <- sizeOfMuniucipalities-1
         rv$avgRendering <- TRUE
         rv$sysAvgRendering <- FALSE
         
-        # print("average-case: current values")
-        # print("rv$maxPeerSelected=")
-        # print(rv$maxPeerSelected)
-        # print("rv$avgRendering=")
-        # print(rv$avgRendering)
-        # print("rv$lastPeerGroup=")
-        # print(rv$lastPeerGroup)
-        # print("rv$currentPeerGroup=")
-        # print(rv$currentPeerGroup)
+        print("average-case: current values")
+        print("rv$maxPeerSelected=")
+        print(rv$maxPeerSelected)
+        print("rv$avgRendering=")
+        print(rv$avgRendering)
+        print("rv$lastPeerGroup=")
+        print(rv$lastPeerGroup)
+        print("rv$currentPeerGroup=")
+        print(rv$currentPeerGroup)
         # 
         
         rv$lastPeerGroup <- rv$currentPeerGroup
@@ -752,7 +1079,7 @@ server <- function(input, output, session) {
     
     
     base::message("===== observeEvent(input$selectRenderingType: end ===============")    
-  })
+  }, priority=2)
   
   
   
@@ -779,7 +1106,8 @@ server <- function(input, output, session) {
     rv$lastPeerGroup <- rv$currentPeerGroup
     rv$currentPeerGroup <- input$peerGroup
     
-    
+    print("current serviceGroup=")
+    print(rv$serviceGroup)
     
     print("rv$lastPeerGroup=")
     print(rv$lastPeerGroup)
@@ -828,18 +1156,18 @@ server <- function(input, output, session) {
                                           options=list(`max-options` = maxPeerSelection4I))
           rv$currentPeerGroup<- tobecut
           
-          # print("----- after truncation -----")
-          # print("rv$currentPeerGroup=")
-          # print(rv$currentPeerGroup)
-          # print("input$peerGroup=")
-          # print(input$peerGroup)
+          print("----- after truncation -----")
+          print("rv$currentPeerGroup=")
+          print(rv$currentPeerGroup)
+          print("input$peerGroup=")
+          print(input$peerGroup)
           
           
           
         } else {
           
           
-          # print("individual case: no need to truncate the peerGroup")
+          print("individual case: no need to truncate the peerGroup")
           
           
         }
@@ -848,13 +1176,13 @@ server <- function(input, output, session) {
       if ((is.null(input$peerGroup))){
         
         
-        # print("!!!!!!!!!!!! Warning: for average-cases, choose at least one peer city !!!!!!!!!!!!")
+        print("!!!!!!!!!!!! Warning: for average-cases, choose at least one peer city !!!!!!!!!!!!")
         
         
       } else {
         
         
-        # print("average case: peerGroup is not null")
+        print("average case: peerGroup is not null")
         
         
       }
@@ -875,7 +1203,7 @@ server <- function(input, output, session) {
 
     
     base::message("===== observe:selectPeers: end")
-  })
+  }, priority=3)
   
 
   
@@ -904,9 +1232,10 @@ server <- function(input, output, session) {
     base::message("===== observeEvent(input$selectedService: start =====")
     
     
-    # print("observeEvent(service): current input$selectedService=")
-    # print(input$selectedService)
-    
+    print("observeEvent(service): current input$selectedService=")
+    print(input$selectedService)
+    print("current serviceGroup=")
+    print(rv$serviceGroup)
     
     # the following two lines store the last selected service
     # This recording is necessary for updating the denominator;
@@ -929,10 +1258,23 @@ server <- function(input, output, session) {
     # new settings
     # change the set of metrics according to a newly selected service
     varset4numerator <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
+    if ((rv$serviceGroup == "others") | (rv$serviceGroup == "")) {
+      # nothing to change
+      print("service selection: others, no change")
+    } else if (rv$serviceGroup == "bi") {
+      print("service selection: bi adjustment")
+      varset4numerator <- c(srv2varlbllst_bi[[input$selectedService]])
+    } else if (rv$serviceGroup == "wsww") {
+      print("service selection: wsww adjustment")
+      varset4numerator <- c(srv2varlbllst_wsww[[input$selectedService]])
+    }
+    
+ 
     print("step 5: contents check: varset4numerator: original")
     #print(varset4numerator)
     # print("observeEvent(service): check new the changedvarset4numerator=")
-    varset4numerator<- varset4numerator[order(names(varset4numerator))]
+    #varset4numerator<- varset4numerator[order(names(varset4numerator))]
+    varset4numerator<- varset4numerator[names(varset4numerator)]
     #print("after sort: varset4numerator")
     #print(varset4numerator)
     print("observeEvent(service): to-be-assgined value for input$selectedVar4num=")
@@ -959,7 +1301,7 @@ server <- function(input, output, session) {
     
     
     base::message("===== observeEvent(input$selectedService: end ===============")
-    })
+    }, priority=5)
   
   
   
@@ -1029,10 +1371,10 @@ server <- function(input, output, session) {
     rv$lastServiceWN <- rv$currentServiceWN
     rv$currentServiceWN <- input$selectedService;
     
-    # print("rv$lastServiceWN=")
-    # print(rv$lastServiceWN)
-    # print("rv$currentServiceWN=")
-    # print(rv$currentServiceWN)
+    print("rv$lastServiceWN=")
+    print(rv$lastServiceWN)
+    print("rv$currentServiceWN=")
+    print(rv$currentServiceWN)
     # 
     # print("rv$lastService=")
     # print(rv$lastService)
@@ -1042,6 +1384,20 @@ server <- function(input, output, session) {
     # get the current list of **all** variables for the current service
     # note: this list now includes census variables
     rawlist <- c(srv2varlbllst[[input$selectedService]], srv2varlbllst[["census"]])
+    if ((rv$serviceGroup == "others") | (rv$serviceGroup == "")) {
+      # no change
+      print("numerator: others")
+    } else if (rv$serviceGroup == "bi") {
+      rawlist <- c(srv2varlbllst_bi[[input$selectedService]])
+      print("numerator: bi adj")
+    } else if (rv$serviceGroup == "wsww") {
+      rawlist <- c(srv2varlbllst_wsww[[input$selectedService]])
+      print("numerator: wsww adj")
+    }
+
+
+
+
     # print("rawlist=")
     # print(rawlist)
     # 
@@ -1052,9 +1408,10 @@ server <- function(input, output, session) {
     varset4denominator <- rawlist[!rawlist %in% c(input$selectedVar4num)]
     print("before: current varset4denominator[1]=")
     print(varset4denominator[1])
-    varset4denominator <- varset4denominator[order(names(varset4denominator))]
-    print("after sort: current varset4denominator[1]=")
-    print(varset4denominator[1])
+    #varset4denominator <- varset4denominator[order(names(varset4denominator))]
+    varset4denominator <- varset4denominator[names(varset4denominator)]
+    # print("after sort: current varset4denominator[1]=")
+    # print(varset4denominator[1])
     #if (input$selectedUseDenominator) {
     # if (TRUE) {
       # denominator-option is on
@@ -1218,7 +1575,7 @@ server <- function(input, output, session) {
     
     base::message("==== within observeEvent: input$selectedVar4num:end=",
                   as.POSIXct(Sys.time(), tz = "EST5EDT"))
-  })
+  }, priority=6)
   
   
   
@@ -1228,6 +1585,10 @@ server <- function(input, output, session) {
   
   shiny::observeEvent(input$selectedVar4denom, {
     base::message("===== within observeEvent: input$selectedVar4denom: start")
+    print("current serviceGroup=")
+    print(rv$serviceGroup)
+    
+    
     print("rv$denominatorUsed=")
     print(rv$denominatorUsed)
     print("current input$selectedVar4denom=")
@@ -1280,7 +1641,7 @@ server <- function(input, output, session) {
     }
 
     base::message("===== within observeEvent: input$selectedVar4denom: end")
-  },
+  }, priority = 7,
   ignoreNULL = FALSE
   ) 
 
@@ -1329,39 +1690,48 @@ server <- function(input, output, session) {
       # shinyFeedback::hideFeedback("selectedYears")
     }
 
-  })
+  }, priority = 8)
   
   # updating the survey data
-  observeEvent(input$dataUpdateConfirmation, {
-    shinyWidgets::ask_confirmation(
-      inputId = "dataUpdateAction",
-      title = NULL,
-      text = tags$b(
-        icon("file"),
-        "Do you really want to check for data updates?",
-        style = "color: #FA5858;"
-      ),
-      btn_labels = c("Cancel", "Update"),
-      btn_colors = c("#00BFFF", "#FE2E2E"),
-      html = TRUE,
-      showCloseButton =TRUE
-    )
-  })
+  # observeEvent(input$dataUpdateConfirmation, {
+  #   shinyWidgets::ask_confirmation(
+  #     inputId = "dataUpdateAction",
+  #     title = NULL,
+  #     text = tags$b(
+  #       icon("file"),
+  #       "Do you really want to check for data updates?",
+  #       style = "color: #FA5858;"
+  #     ),
+  #     btn_labels = c("Cancel", "Update"),
+  #     btn_colors = c("#00BFFF", "#FE2E2E"),
+  #     html = TRUE,
+  #     showCloseButton =TRUE
+  #   )
+  # })
   
-  observeEvent(input$dataUpdateAction, {
-    if (isTRUE(input$dataUpdateAction)){
-      print("data-update will be called")
-      # call the update function here
-      # data-update logic here
-      #checkSurveyData()
+  # observeEvent(input$dataUpdateAction, {
+  #   if (isTRUE(input$dataUpdateAction)){
+  #     print("data-update will be called")
+  #     # call the update function here
+  #     # data-update logic here
+  #     #checkSurveyData()
+  #   } else {
+  #     print("data update was canceled")
+  #   }
+  #   
+  #   
+  # })
+  # 
+  # 
+  
+  shiny::observe({
+    if (input$goButton == 0) {
+      shinyjs::disable("downloadImage")
     } else {
-      print("data update was canceled")
+      shinyjs::enable("downloadImage")
     }
     
-    
   })
-  
-  
   
 
   #############################################################################
@@ -1375,9 +1745,10 @@ server <- function(input, output, session) {
   output$initialMessage <- shiny::renderText({
     if (input$goButton == 0) {
       shiny::HTML(paste(
-        "Welcome to Municipalities Benchmarking 2.0.",
+        paste("Welcome to Municipalities Benchmarking 2.0.:<br/>&nbsp;&nbsp;Dashboard of ", welcomeToken[[rv$serviceGroup]]),
         paste("Please follow the steps on the right and",
               "click the Submit button to start a new benchmarking session.",
+              #starting_default,
           sep = "<br />"
         ),
         sep = "<br /><br />"
@@ -1420,6 +1791,83 @@ server <- function(input, output, session) {
     print(rv$sysAvgRendering)
     print("rv$avg_case=")
     print(rv$avg_case)
+    
+    print("current rv$serviceGroup=")
+    print(rv$serviceGroup)
+    
+    
+    
+    
+    if (rv$serviceGroup == "bi") {
+      print("============= benchmarking_plot: sg: bi case =============")
+      print("loading bi data")
+      # rv$serviceGroup <- "bi"
+      
+      
+      # data loading: bi case
+      bd_data <- bd_data_bi
+      all_varNameToLabel <- all_varNameToLabel_bi
+      all_vname2def <- all_vname2def_bi
+      y_list <- y_list_bi
+      v2lallinOne <- v2lallinOne_bi
+      srvclngToShrtRefLst <- srvclngToShrtRefLst_bi
+      srvclngToShrtRefLstWoc <- srvclngToShrtRefLstWoc_bi
+      srv2varlbllst <- srv2varlbllst_bi
+      default_selected_service <- default_selected_service_bi
+      citylabel <- citylabel_bi
+      # 
+      # varset4numerator <- varset4numerator_bi
+      # varset4denominator <- varset4numerator_bi
+      
+    } else if (rv$serviceGroup == "wsww") {
+      print("============= benchmarking_plot: sg: wsww case =============")
+      print("loading wsww data")
+      # rv$serviceGroup <- "wsww"
+      
+      bd_data <- bd_data_wsww
+      all_varNameToLabel <- all_varNameToLabel_wsww
+      all_vname2def <- all_vname2def_wsww
+      y_list <- y_list_wsww
+      v2lallinOne <- v2lallinOne_wsww
+      srvclngToShrtRefLst <- srvclngToShrtRefLst_wsww
+      srvclngToShrtRefLstWoc <- srvclngToShrtRefLstWoc_wsww
+      srv2varlbllst <- srv2varlbllst_wsww
+      default_selected_service <- default_selected_service_wsww
+      citylabel <- citylabel_wsww
+      # 
+      # varset4numerator <- varset4numerator_wsww
+      # varset4denominator <- varset4numerator_wsww
+      
+      
+    } else {
+      print("============= benchmarking_plot: sg: others case =============")
+      print("loading others data")
+      # rv$serviceGroup <- "others"
+      
+      bd_data <- bd_data_others
+      all_varNameToLabel <- all_varNameToLabel_others
+      all_vname2def <- all_vname2def_others
+      y_list <- y_list_others
+      v2lallinOne <- v2lallinOne_others
+      srvclngToShrtRefLst <- srvclngToShrtRefLst_others
+      srvclngToShrtRefLstWoc <- srvclngToShrtRefLstWoc_others
+      srv2varlbllst <- srv2varlbllst_others
+      default_selected_service <- default_selected_service_others
+      citylabel <- citylabel_others
+      # 
+      # varset4numerator <- varset4numerator_others
+      # varset4denominator <- varset4numerator_others
+      
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     # The following setting ensures that 
@@ -1554,7 +2002,7 @@ server <- function(input, output, session) {
     }
     
     
-    # isolcating the base-city did not work; it seems the choice of a base city
+    # isolating the base-city did not work; it seems the choice of a base city
     # must reactively update the state of selected comparison cities;
     # otherwise, isolating the choice of a base-city(= waiting for a submission
     # action to complete the choice) ended up erratic/unstable UI states.
@@ -1685,8 +2133,8 @@ server <- function(input, output, session) {
     selectedYearsC <- as.character(input$selectedYears)
     
     
-    # print("selectedYearsC=")
-    # print(selectedYearsC)
+    print("selectedYearsC=")
+    print(selectedYearsC)
 
     
     
@@ -1700,8 +2148,8 @@ server <- function(input, output, session) {
     # the whole rendering process and tries to display a peer-group's data.
     
     
-    # print("input$selectedVar4num=")
-    # print(input$selectedVar4num)
+    print("input$selectedVar4num=")
+    print(input$selectedVar4num)
     
     
     valueAvailableCities <- bd_data %>%
@@ -1714,10 +2162,10 @@ server <- function(input, output, session) {
     
     
     
-    # print("valueAvailableCities=")
-    # print(valueAvailableCities)
-    # print("selected city=")
-    # print(baseCity)
+    print("valueAvailableCities=")
+    print(valueAvailableCities)
+    print("selected city=")
+    print(baseCity)
     
     
     msg_no_base_m_data <- ""
@@ -1745,8 +2193,8 @@ server <- function(input, output, session) {
     # print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
     # print("data_sc_nm: afer as.matrix()=")
     # print(data_sc_nm)
-    
-    
+    print("bd_data=")
+    print(bd_data)
     #--------------------------------------------------------------------------
     # test with a common method
     # dt, selectedService, selectedVar4num, group, selectedYears
@@ -1950,9 +2398,10 @@ server <- function(input, output, session) {
         data_pg_nm <- 10 ^ as.integer(input$selectMultiplier) * data_pg_nm
       }
       
-      # print("data_pg_nm(b)=")
-      # print(data_pg_nm)
-      
+      print("data_pg_nm(b)=")
+      print(data_pg_nm)
+      print("checkedM=")
+      print(checkedM)
       # re-attach peer-group's name vector
       rownames(data_pg_nm) <- checkedM
       
@@ -2666,18 +3115,35 @@ server <- function(input, output, session) {
     # print(input$selectMultiplier)
     multiplierValue <-
       as.character(10 ^ as.integer(input$selectMultiplier))
-    
-    
+    # print("length of CheckedM")
+    # print(length(checkedM))
+    # print("legth of cityLabel")
+    # print(length(citylabel))
     peerGroupList <- ""
     if (!is.null(checkedM)) {
       peerGroupList <- if (rv$sysAvgRendering && 
                            length(checkedM) == length(citylabel)
-                           ) "All participating municipalities" else stringr::str_wrap(
+                           ) "All participating jurisdictions" else stringr::str_wrap(
         paste(checkedM, collapse = ", ")
         , width = 80)
     }
+    # print("peerGroupList=")
+    # print(peerGroupList)
+    df_checkedM <- NULL
+    if (length(checkedM) > 25 && length(checkedM) < length(citylabel) ) {
+      peerGroupList <- "see the second table below"
+      df_checkedM <- data.frame(matrix(checkedM, ncol = 5, dimnames =NULL))
+      colnames(df_checkedM)[c(2:5)] <-""
+      colnames(df_checkedM)[1] <- "Comparison Jurisdictions"
+      #colnames(df_checkedM)[2] <- "Jurisdictions"
+    } else {
+      
+    }
+
+
+
     
-    baseCityline <- if (!rv$sysAvgRendering) paste0("Base Municipality: ",
+    baseCityline <- if (!rv$sysAvgRendering) paste0("Base Jurisdiction: ",
                                                      baseCity) else ""
     
     
@@ -2688,7 +3154,7 @@ server <- function(input, output, session) {
         baseCityline,
         "\nService: ",
         serviceNameFull,
-        "\nComparison Municipalities: ",
+        "\nComparison Jurisdictions: ",
         peerGroupList,
         "\nMultiplier: ",
         multiplierValue,
@@ -2757,9 +3223,17 @@ server <- function(input, output, session) {
     # table 
     # pDefTable <- createTextualTable(df4DefTable, useDenominator)
     
-    
+    # store the metric-definition table
     rv$defTable <- df4DefTable
     
+    # store a list of comparison-jurisdictions 
+    if (!is.null(df_checkedM)) {
+      rv$jrsdctnTable <- (df_checkedM)
+    } else {
+      # no second table; empty data.frame
+      rv$jrsdctnTable <- data.frame()
+    }
+
     
     base::message("====== benchmarking_plot: end-time:", as.POSIXct(Sys.time(),
       tz = "EST5EDT"))
@@ -2787,10 +3261,43 @@ server <- function(input, output, session) {
   })
   
   #############################################################################
+  # outputing tables 
+  # 
+  # outputing the metric-definition table
   output$metricDefTable <-  shiny::renderTable(rv$defTable)
+  
+  # outputing the comparison-jurisdiction table as a table object
+  #output$jurisdictionTable <-  shiny::renderTable(rv$jrsdctnTable)
+  
+  # outputing the comparison-jurisdiction table as a plot object
+  # 
+  # output$jurisdictionTable <-  shiny::renderPlot({
+  #   if (plyr::empty(rv$jrsdctnTable)) {
+  #     # do not render the table
+  #   } else {
+  #     gridExtra::grid.table(rv$jrsdctnTable, rows = NULL, theme = tt1)
+  #     
+  #   }
+  #   
+  # })
+    
+  output$jurisdictionTable <-  shiny::renderTable({
+    if (plyr::empty(rv$jrsdctnTable)) {
+      # do not render the table
+    } else {
+      #gridExtra::grid.table(rv$jrsdctnTable, rows = NULL, theme = tt1)
+      rv$jrsdctnTable
+    }
 
+  })
+    
+    
 
-
+  # output$jurisdictionTable <-  DT::renderDT(
+  #   DT::datatable(rv$jrsdctnTable, caption = "Comparison Jurisdiction"))
+  # output$jurisdictionTable1 <- shiny::renderPlot(
+  #   gridExtra::grid.table(rv$jrsdctnTable)
+  # )
   
   #############################################################################
   
@@ -2798,7 +3305,7 @@ server <- function(input, output, session) {
   #############################################################################
   # downloading the current benchmarking graph as a PDF file
   #############################################################################
-  output$dwonloadImage <- shiny::downloadHandler(
+  output$downloadImage <- shiny::downloadHandler(
     filename = function(){
       pdf_file_name <-paste(tempfile(), ".pdf", sep = "")
       print("pdf_file_name=");print(pdf_file_name)
@@ -2819,14 +3326,52 @@ server <- function(input, output, session) {
       # print(paperWidth)
       # print("paerHeight=")
       # print(paerHeight)
+      # 
+      # 1st attempt
+      # plot_list <- list()
+      # plot <- benchmarking_plot()
+      # plot_list[[1]] <- ggplot2:::ggplotGrob(plot)
+      # plot_list[[2]] <- gridExtra::tableGrob(rv$defTable)
+      # plot_list[[3]] <- gridExtra::tableGrob(rv$jrsdctnTable)
+      # class(plot_list) <- c("arrangelist", class(plot_list))
+
+      # 2nd attempt
+      # 
+      # tt1 <- gridExtra::ttheme_default(base_family="barlow", core=list(fg_params = list(hjust=0, x=0.01, fontsize=10)),
+      #                                  colhead = list(fg_params = list(hjust=0, x=0.01,
+      #                                                                  fontface = "bold")))
+      # 
       
+      plot_list <- list()
+      plot <- benchmarking_plot()
+      plot_list[[1]] <- ggplot2:::ggplotGrob(plot)
+      if (plyr::empty(rv$jrsdctnTable)){
+        # no 
+        plot_list[[2]] <- gridExtra::arrangeGrob(gridExtra::tableGrob(rv$defTable, rows = NULL, theme = tt1), ncol=1, nrow=1)
+      } else {
+        plot_list[[2]] <- gridExtra::arrangeGrob(gridExtra::tableGrob(rv$defTable, rows = NULL, theme = tt1), 
+           gridExtra::tableGrob(rv$jrsdctnTable, rows=NULL, theme = tt1), ncol=1, nrow=2)
+      }
+
+      class(plot_list) <- c("arrangelist", class(plot_list))
+      # new 
       ggplot2::ggsave(filename = file, 
-             plot = benchmarking_plot(),
-             device=grDevices::cairo_pdf,
-             width = paperWidth,
-             height = paerHeight,
-             units = "in"
-             )
+                      plot = plot_list,
+                      device=grDevices::cairo_pdf,
+                      width = paperWidth,
+                      height = paerHeight,
+                      units = "in"
+      )
+      
+      
+      # original 
+      # ggplot2::ggsave(filename = file, 
+      #        plot = benchmarking_plot(),
+      #        device=grDevices::cairo_pdf,
+      #        width = paperWidth,
+      #        height = paerHeight,
+      #        units = "in"
+      #        )
       
     }
     
