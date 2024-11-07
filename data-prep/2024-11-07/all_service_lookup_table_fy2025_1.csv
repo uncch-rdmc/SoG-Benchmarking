@@ -1,0 +1,15 @@
+Abbrev,Full,OrderNo,lc,Order_25,Order_25x,Full_wrksht,col_prefix
+am,Asphalt Maintenance,1,am,1,1,Asphalt Maintenance,qam
+bi,"Building Plan Review, Permit, and Inspections",2,bi,2,2,Building Inspections,qbi
+ec,Emergency Communications,5,ec,3,3,Emergency Communications,qec
+fs,Fire,6,fs,5,4,Fire Service,qfs
+fm,Fleet Maintenance,7,fm,4,5,Fleet Maintenance,qfm
+hr,Human Resources,3,hr,6,6,Human Resources,qhr
+pr,Parks and Recreation,4,pr,7,7,Parks and Recreation,qpr
+ps,Police Service,9,ps,8,8,Police Service,qps
+re,Recycling,8,re,9,9,Recycling,qre
+rr,Residential Refuse Collection,10,rr,10,10,Residential Refuse Collection,qrr
+ww,Wastewater Service,11,ww,12,11,Wastewater Service,qww
+ws,Water Utility,12,ws,11,12,Water Service,qws
+yw,Yard Waste,13,yw,13,13,Yard Waste and Leaf Collection,qyw
+census,Census Data,14,census,14,14,Census Data,

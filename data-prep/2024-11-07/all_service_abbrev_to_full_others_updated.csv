@@ -1,0 +1,12 @@
+Abbrev,Full,OrderNo,lc
+am,Asphalt Maintenance,1,am
+ec,Emergency Communications,3,ec
+fm,Fleet Maintenance,5,fm
+fs,Fire,4,fs
+hr,Human Resources,2,hr
+pr,Parks and Recreation,7,pr
+ps,Police Service,8,ps
+re,Recycling,6,re
+rr,Residential Refuse Collection,9,rr
+yw,Yard Waste,10,yw
+census,Census Data,11,census
