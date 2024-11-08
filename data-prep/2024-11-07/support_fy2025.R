@@ -1,51 +1,41 @@
-# This is an updated version (2024-09) of dumpDataAsExcelWorkbook, which was coded in
-# April 2024, for FY2025 data
+# This is the successor of dumpDataAsExcelWorkbook that was coded in April 2024;
+# This script assumes FY2025 data files
 
-# definition
-# assumptions here:
-# if the Service column of a dataset to be serialized uses each service's acronym
-# rather than its fully spelled name, the keys of a list for `var_list` argument must be
-# each service's acronym rather than its full name; if not, the keys must be 
-# each service's full name, i.e., data-var_list consistency must be maintained
-# 
-# data$Service       var_list
-# if acronym      => keys must be acronym too
-# if full name    => keys must be full name too
-# 
-# This script is expected to run after the following objects are updated
+# This script is expected to run after the following objects are created in the
+# PART III of ./bd_data_update_fy2025_2024-11-07.R.
+ 
+# 1. data files
 # 
 # data_others_round
 # data_bi_round
 # data_wsww_round
 # 
+# 2. metric-defintion files
+# 
 # MetricNames_others
 # MetricNames_bi
 # MetricNames_wsww
 
-# hash table
-# full-name type
-# columns_per_service_list_bi
-# columns_per_service_list_wsww
-# columns_per_service_list_others
-
-# or 
-# acronym type
+# 3. hash tables
+# 
 # columns_per_service_list_others_x
 # columns_per_service_list_bi_x
 # columns_per_service_list_wsww_x
-# 
 
-
+# =============================================================================
+# Required Package
+# =============================================================================
 library(openxlsx2)
+
 # important openxlsx2-related options
-# openxlsx2
 options("openxlsx2.string_nums" = TRUE)
 options("openxlsx2.numFmt" = "#,##0.000")
 options("openxlsx2.na.strings" = "")
 
 # =============================================================================
 # Functions
-# 
+# =============================================================================
+
 #------------------------------------------------------------------------------
 # new function that generates a list of data.frames to be dumped
 # -----------------------------------------------------------------------------
@@ -232,9 +222,9 @@ metricCounterList){
 # =============================================================================
 
 
-#------------------------------------------------------------------------------
-# using the above functions
-# -----------------------------------------------------------------------------
+# =============================================================================
+# How to use the above functions and generate an audit file
+# =============================================================================
 
 # prepare the manifest page
 # update the date values when you run this function

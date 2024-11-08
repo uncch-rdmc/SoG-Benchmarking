@@ -1,4 +1,4 @@
-
+# Last updated on 2024-11-07
 # version: This version deals with the data files of 2024-11-01
 
 
@@ -7,14 +7,14 @@
 # benchmarking_project_bi_2024-11-01.csv
 # benchmarking_project_others_2024-11-01.csv
 # benchmarking_project_wsww_2024-11-01.csv
-# 'Metric Codes, Names, and Definitions_2024-11-01.csv'
-
-# 
-# all_service_abbrev_to_full_others_updated.csv
+# Metric Codes, Names, and Definitions_2024-11-01.csv
 # Census_Data_2020-2022_others.csv
 # Census_Data_2020-2022_bi.csv
-# Metric Codes, Names, and Definitions_2024-11-01.csv
+
 # all_service_lookup_table_fy2025_1.csv
+# all_service_abbrev_to_full_others_updated.csv
+# all_service_abbrev_to_full_wsww.csv
+# all_service_abbrev_to_full_bi.csv
 
 
 
@@ -32,7 +32,7 @@ library(tidyverse)
 
 # read each data file
 # bi case
-bi_2024_11_01 <- readr::read_csv("../../2024-11-01/benchmarking_project_bi_2024-11-01.csv",
+bi_2024_11_01 <- readr::read_csv("./benchmarking_project_bi_2024-11-01.csv",
                                  col_types = readr::cols(
                                    .default = "n",
                                    ResponseId = readr::col_skip(),
@@ -43,7 +43,7 @@ bi_2024_11_01 <- readr::read_csv("../../2024-11-01/benchmarking_project_bi_2024-
 # wsww case
 
 
-wsww_2024_11_01 <- readr::read_csv("../../2024-11-01/benchmarking_project_wsww_2024-11-01.csv",
+wsww_2024_11_01 <- readr::read_csv("./benchmarking_project_wsww_2024-11-01.csv",
                                    col_types = readr::cols(
                                      .default = "n",
                                      ResponseId = readr::col_skip(),
@@ -54,7 +54,7 @@ wsww_2024_11_01 <- readr::read_csv("../../2024-11-01/benchmarking_project_wsww_2
 
 
 # others case
-others_2024_11_01<- readr::read_csv("../../2024-11-01/benchmarking_project_others_2024-11-01.csv",
+others_2024_11_01<- readr::read_csv("./benchmarking_project_others_2024-11-01.csv",
                                     col_types = readr::cols(
                                       .default = "n",
                                       ResponseId = readr::col_skip(),
@@ -65,8 +65,8 @@ others_2024_11_01<- readr::read_csv("../../2024-11-01/benchmarking_project_other
 
 
 # -----------------------------------------------------------------------------
-# the actual-set vs pop-set for providers
-#
+
+# a_jurisdiction check
 sp_set_bi <-
   bi_2024_11_01 |>
   dplyr::select(a_jurisdiction) |>
@@ -76,6 +76,7 @@ sp_set_bi <-
 sp_set_bi
 length(sp_set_bi) # 62
 
+# duplication check
 sp_set_bi[duplicated(sp_set_bi)] 
 
 
@@ -87,6 +88,8 @@ sp_set_wsww <-
   as.vector()
 sp_set_wsww
 length(sp_set_wsww) #112
+
+# duplication check
 sp_set_wsww[duplicated(sp_set_wsww)] 
 
 sp_set_others <-
@@ -97,9 +100,12 @@ sp_set_others <-
   as.vector()
 sp_set_others
 length(sp_set_others) #16
+
+# duplication check
 sp_set_others[duplicated(sp_set_others)] 
 
 
+# service check
 bi_2024_11_01 |>
   dplyr::group_by(a_service) |>
   dplyr::count()  
@@ -111,9 +117,8 @@ wsww_2024_11_01 |>
   dplyr::count()
 
 # others: 11 services; Budgeting was added after 2024-09-30
-# A problem here is that they are not used for GUI, i.e., they must be 
-# related to each respective service;
-# these "Budgeting" rows must be re-coded to their respective service
+# A problem here is that they are not used for the Dashboard, i.e., 
+# their data must be relocated to each respective service;
 
 others_2024_11_01 |>
   dplyr::group_by(a_service) |>
@@ -129,25 +134,25 @@ all_service_fy2025 <-
 all_service_fy2025 # 11
 
 
-# Budgeting-data manipulating block:
+# -----------------------------------------------------------------------------
+# Relocating Budgeting-data:
+# -----------------------------------------------------------------------------
 
-
-# 2024-11-01 update
 # budget only data
 others_2024_11_01_budget <- others_2024_11_01 |>
   dplyr::filter(stringr::str_detect(a_service, "^Budget"))
+
 others_2024_11_01_budget[sapply(others_2024_11_01_budget, function(x) all(is.na(x)))] <- NULL
 dim(others_2024_11_01_budget) # 63 23
 
 
-# 2024-11-01 update
-# creating a hash table from service-acronym to service-full name
-all_service_abbrev_to_full_others <- readr::read_csv("all_service_abbrev_to_full_others_updated.csv", 
-                                              col_types = readr::cols(OrderNo = readr::col_integer()))
-# or
-#all_service_abbrev_to_full_others <- readr::read_rds(file="all_service_abbrev_to_full_others.rds")
 
-# creating a hash table from service-full name to service acronym
+# creating a hash table: from service-acronym to service-full name
+all_service_abbrev_to_full_others <- readr::read_csv("all_service_abbrev_to_full_others_updated.csv", 
+col_types = readr::cols(OrderNo = readr::col_integer()))
+
+
+# creating a hash table: from service-full name to service acronym
 srvclngToShrtRefLstWoc_others <-list()
 for (i in 1:dim(all_service_abbrev_to_full_others)[1]) {
   if (all_service_abbrev_to_full_others$lc[[i]]=="census"){
@@ -159,6 +164,7 @@ srvclngToShrtRefLstWoc_others
 
 
 # creating a list of rows that indicates which service (row) should be updated
+# 
 # > row_id2row_numbers
 # [[1]]
 # am  ec  fs  fm  hr  pr  ps  re  rr  yw 
@@ -203,37 +209,14 @@ row_id2row_numbers
 
 
 # ----------------------------------------------------------------------------
-# How to replace Budgeting-related cells with their respective cells from the 
-# budgeting rows
+# To relocate Budgeting-related cells to their respective's cells
 # -----------------------------------------------------------------------------
-# budgeting row => related/available rows 
-# for each of the above affected rows, get relevant 
 
 # create a test data file
-
-
 others_2024_11_01_test <- others_2024_11_01
 
-# loop through: budget_df_row: others_2024_10_04_budget
-#   find i-th row's related row vector => c(556 557 558 559)
-#   and also its service => ("yw" "rr" "re" "fm")
-# the above vector gives rows to be updated and each row's service is known,
-# the columns to be update in the parent d.f. are given by the following way:
-# e.g., am => (qam17, qam18)
-# 
-# next to be found is its corresponding columns in the all
-# this step is done by service => service_column: am => data_budget(4, 5) or qamxx, qamyy
-# 21, 22 : 
-# service2b_mtrcs: service_acro to its relevant metric name
-# 
-
-
-
 # how many columns in Budgeting rows
-
-
 budget_metrics <- grep("^q", colnames(others_2024_11_01_budget), value=TRUE, invert = FALSE) |> sort()
-
 budget_metrics
 length(budget_metrics) #: 20 so far
 
@@ -248,7 +231,20 @@ budget_metric_services_wq
 length(budget_metric_services) # 10 => each service has two budgeting metrics columns
 
 
-# creating service2b_mtrcs such as
+
+
+# loop through: budget_df_row: others_2024_10_04_budget
+#   find i-th row's related row vector => c(556 557 558 559)
+#   and also its service => ("yw" "rr" "re" "fm")
+# the above vector gives rows to be updated and each row's service is known,
+# the columns to be update in the parent d.f. are given by the following way:
+# e.g., am => (qam17, qam18)
+# 
+# next to be found is its corresponding columns in the all
+# this step is done by service => service_column: am => data_budget(4, 5) or qamxx, qamyy
+# 21, 22 : 
+# 
+# creating service2b_mtrcs: from service_acronyms to its relevant metric name
 # > service2b_mtrcs
 # $am
 # [1] "qam17" "qam18"
@@ -337,7 +333,7 @@ for (ri in 1:dim(others_2024_11_01_budget)[1]){
 print("how many replacement=")
 print(counter_replacement)
 
-
+# removing the budgeting rows
 others_2024_11_01_test <- 
   others_2024_11_01_test |>
   dplyr::filter(a_service !="Budgeting")
@@ -353,7 +349,7 @@ others_2024_11_01_test |>
 
 # -----------------------------------------------------------------------------
 # read back the current census data file
-# 
+# -----------------------------------------------------------------------------
 # Pop_others
 # note:  bi and others have a population file
 
@@ -365,6 +361,7 @@ others_2024_11_01_test |>
 # this is wide-form
 Pop_others_2024_11_01 <- readr::read_csv("./Census_Data_2020-2022_others.csv", 
  col_types = readr::cols (.default = "n", a_jurisdiction = "c"))
+
 
 # generate its long-form 
 bd_census_data_others_2024_11_01 <- 
@@ -399,7 +396,7 @@ dim(Pop_bi_2024_11_01) # 1045 x 3
 
 # -----------------------------------------------------------------------------
 # read back the metric definition file
-# 
+# -----------------------------------------------------------------------------
 # MetricNames
 
 # 2024-11-01 updated
@@ -431,7 +428,8 @@ MetricNames_others <- MetricNames |> dplyr::filter(stringr::str_detect(code_new,
 dim(MetricNames_others) # 578 x 3
 
 #------------------------------------------------------------------------------
-# reference table to be used for generating data as an Excel workbook, etc.
+# reference table for generating data as an Excel workbook, etc.
+# -----------------------------------------------------------------------------
 # all_service_lookup_table_fy2025 is used in this block only
 # 
 # read back the reference table
@@ -454,8 +452,8 @@ service_all_woc
 
 # -----------------------------------------------------------------------------
 # population-related operation and renaming objects
-
-# 2024-11-01
+# -----------------------------------------------------------------------------
+# 
 # # bi
 data_bi_pop_added <-
   dplyr::left_join(bi_2024_11_01, Pop_bi_2024_11_01, 
@@ -473,7 +471,7 @@ data_others_pop_test <- others_2024_11_01_test
 
 
 Pop_others_pop_only <- 
-Pop_others_pop_test |> dplyr::select(a_jurisdiction, a_fiscal_year, census_01)
+Pop_others_2024_11_01 |> dplyr::select(a_jurisdiction, a_fiscal_year, census_01)
 
 
 
@@ -929,16 +927,6 @@ data_others |>
   dplyr::count()
 
 
-# ----------------------------------------------------------------------------
-# NA summention issue
-# -----------------------------------------------------------------------------
-# sum1 <-1 + NA
-# sum1 #== NA
-# sum2 <- sum(c(1, NA), na.rm = TRUE)
-# sum2 #== 1
-
-
-
 # save the 3 data objects for not repeating the above long steps
 readr::write_rds(data_bi, file="data_bi.rds")
 readr::write_rds(data_wsww, file="data_wsww.rds")
@@ -981,9 +969,7 @@ data_wsww[sapply(data_wsww, is.nan)] <- NA
 # =============================================================================
 # Part III
 # =============================================================================
-# via data set
-# original way and still used
-# 
+
 qrr <- names(data_others[1,grepl("qrr", names(data_others))])
 qre <- names(data_others[1,grepl("qre", names(data_others))])
 qyw <- names(data_others[1,grepl("qyw", names(data_others))])
@@ -1003,28 +989,29 @@ qww <- names(data_wsww[1,grepl("qww", names(data_wsww))])
 
 
 
-# Objects required for audit-file generation 
+# To generate objects required for audit-file generation 
+# 
 # A list of all metrics in each service to generate the audit file
 
 # others
 # 
 # full-name case
-columns_per_service_list_others <- list(
-  "Asphalt Maintenance" = qam,
-  # "Budgeting" = qbf, # no longer used
-  # "Building Inspection" = qbi,
-  "Human Resources" = qhr,
-  "Emergency Communications" = qec,
-  "Fire" = qfs,
-  "Fleet Maintenance" = qfm,
-  "Recycling" = qre,
-  "Parks and Recreation" = qpr,
-  "Police Service" = qps,
-  "Residential Refuse Collection" = qrr,
-  # "Wastewater Service" = qww,
-  # "Water Utility" = qws,
-  "Yard Waste" = qyw
-)
+# columns_per_service_list_others <- list(
+#   "Asphalt Maintenance" = qam,
+#   # "Budgeting" = qbf, # no longer used
+#   # "Building Inspection" = qbi,
+#   "Human Resources" = qhr,
+#   "Emergency Communications" = qec,
+#   "Fire" = qfs,
+#   "Fleet Maintenance" = qfm,
+#   "Recycling" = qre,
+#   "Parks and Recreation" = qpr,
+#   "Police Service" = qps,
+#   "Residential Refuse Collection" = qrr,
+#   # "Wastewater Service" = qww,
+#   # "Water Utility" = qws,
+#   "Yard Waste" = qyw
+# )
 
 # acronym case
 columns_per_service_list_others_x <- list(
@@ -1046,9 +1033,9 @@ columns_per_service_list_others_x <- list(
 
 # bi
 # full-name case
-columns_per_service_list_bi <- list(
-  "Building Plan Review, Permit, and Inspections" = qbi
-)
+# columns_per_service_list_bi <- list(
+#   "Building Plan Review, Permit, and Inspections" = qbi
+# )
 
 # acronym case
 columns_per_service_list_bi_x <- list(
@@ -1057,10 +1044,10 @@ columns_per_service_list_bi_x <- list(
 
 # wsww
 # full-name case
-columns_per_service_list_wsww <- list(
-  "Wastewater Service" = qww,
-  "Water Utility" = qws
-)
+# columns_per_service_list_wsww <- list(
+#   "Wastewater Service" = qww,
+#   "Water Utility" = qws
+# )
 
 # acronym case
 columns_per_service_list_wsww_x <- list(
@@ -1069,8 +1056,6 @@ columns_per_service_list_wsww_x <- list(
 )
 
 # acronym case for all
-
-
 
 columns_per_service_list <- list(
   "am" = qam,
@@ -1163,42 +1148,35 @@ data_wsww$Service <-  dplyr::recode(data_wsww$Service ,
 
 
 # !!!! caution !!!!
-# The below step requires the magrittr pipe (%>%), i.e., the native pipe does not work
-# library(tidyverse)
-# 
-# This block is for generating an audit file
+# The following 3 lines require the magrittr pipe (%>%), 
+# i.e., the native pipe does not work
+# The following steps of this block are for generating an audit file,
+# setting the decimal digits to 3
 data_others_round <- data_others %>% dplyr::mutate_if(is.numeric, ~ round(., digits = 3))
 data_bi_round <- data_bi %>% dplyr::mutate_if(is.numeric, ~ round(., digits = 3))
 data_wsww_round <- data_wsww %>% dplyr::mutate_if(is.numeric, ~ round(., digits = 3))
 
 
-
-# 
-# to generate an audit file,
+# when you finish the above block,
+# you can generate an audit file.
 # see ./support_fy2025.R
-# -----------------------------------------------------------------------------
-# required files
+# how to generate an audit file,
 # 
-# Data
+# The required objects are as follows:
+# 
+# 1. Data
 # data_bi
 # data_wsww
 # data_others
 
 
-# metric-definition file
+# 2. metric-definition file
 # MetricNames_bi
 # MetricNames_wsww
 # MetricNames_others
-# 
-# 
-# hash table
-# full-name type
-# columns_per_service_list_bi
-# columns_per_service_list_wsww
-# columns_per_service_list_others
 
-# or 
-# acronym type
+
+# 3. Hash tables
 # columns_per_service_list_others_x
 # columns_per_service_list_bi_x
 # columns_per_service_list_wsww_x
@@ -1206,9 +1184,9 @@ data_wsww_round <- data_wsww %>% dplyr::mutate_if(is.numeric, ~ round(., digits 
 # =============================================================================
 # Part IV
 # =============================================================================
-
+# Finalizing 3 data files required for running the Dashboard
 # -----------------------------------------------------------------------------
-# others
+# others case
 # -----------------------------------------------------------------------------
 
 
@@ -1309,7 +1287,7 @@ tmp_result_others |> dplyr::group_by(Service) |> dplyr::tally()
 # tmp_result
 
 
-### step 4-4: saving the completed file as an rds file
+###  saving the completed file as an rds file
 
 
 readr::write_rds(tmp_result_others, file="bd_data_completed7_others.rds")
@@ -1375,7 +1353,7 @@ readr::write_rds(tmp_result_bi, file="bd_data_completed7_bi.rds")
 
 
 # -----------------------------------------------------------------------------
-# wsww
+# wsww case
 # -----------------------------------------------------------------------------
 key2value_wsww  <- c('ww'=1,'ws'=2)
 key2value_wsww
@@ -1711,14 +1689,14 @@ readr::write_rds(all_service_abbrev_to_full_others, file="all_service_abbrev_to_
 #all_service_abbrev_to_full_others <- readr::read_rds(file="all_service_abbrev_to_full_others.rds")
 
 # bi
-all_service_abbrev_to_full_bi <- read_csv("all_service_abbrev_to_full_bi.csv", 
+all_service_abbrev_to_full_bi <- readr::read_csv("all_service_abbrev_to_full_bi.csv", 
                                               col_types = cols(OrderNo = col_integer()))
 readr::write_rds(all_service_abbrev_to_full_bi, file="all_service_abbrev_to_full_bi.rds")
 #all_service_abbrev_to_full_bi <- readr::read_rds(file="all_service_abbrev_to_full_bi.rds")
 
 
 # wsww
-all_service_abbrev_to_full_wsww <- read_csv("all_service_abbrev_to_full_wsww.csv", 
+all_service_abbrev_to_full_wsww <- readr::read_csv("all_service_abbrev_to_full_wsww.csv", 
                                               col_types = cols(OrderNo = col_integer()))
 readr::write_rds(all_service_abbrev_to_full_wsww, file="all_service_abbrev_to_full_wsww.rds")
 #all_service_abbrev_to_full_wsww <- readr::read_rds(file="all_service_abbrev_to_full_wsww.rds")
@@ -1881,3 +1859,50 @@ readr::write_rds(srv2varlbllst_bi, file="srv2varlbllst_bi.rds")
 
 # wsww
 readr::write_rds(srv2varlbllst_wsww, file="srv2varlbllst_wsww.rds")
+
+
+# =============================================================================
+# PART VI
+# =============================================================================
+# copy the following generated 24 files to
+#  ../../SoG-Benchmarking/Benchmarking2 directory
+# 
+
+# all_service_abbrev_to_full_others.rds
+# all_service_abbrev_to_full_bi.rds
+# all_service_abbrev_to_full_wsww.rds
+# 
+# all_varNameToLabel7_others.rds
+# all_varNameToLabel7_bi.rds
+# all_varNameToLabel7_wsww.rds
+# 
+# all_vname2def_others.rds
+# all_vname2def_bi.rds
+# all_vname2def_wsww.rds
+# 
+# bd_data_completed7_others.rds
+# bd_data_completed7_bi.rds
+# bd_data_completed7_wsww.rds
+# 
+# 
+# srv2varlbllst_wsww.rds
+# srv2varlbllst_others.rds
+# srv2varlbllst_bi.rds
+# 
+# srvclngToShrtRefLst_wsww.rds
+# srvclngToShrtRefLst_others.rds
+# srvclngToShrtRefLst_bi.rds
+# 
+# srvclngToShrtRefLstWoc_wsww.rds
+# srvclngToShrtRefLstWoc_others.rds
+# srvclngToShrtRefLstWoc_bi.rds
+# 
+# v2lallinOne_wsww.rds
+# v2lallinOne_others.rds
+# v2lallinOne_bi.rds
+
+
+
+
+
+

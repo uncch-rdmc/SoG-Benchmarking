@@ -1,0 +1,65 @@
+
+
+:toc: right
+:toclevels: 3
+:icons: font
+= How to prepare data files for the Dashboard
+
+== Introduction
+
+This directory contains an R script file, `bd_data_update_fy2025_2024-11-07.R`, 
+that generates data files required to run the Dashboard when new data become available.
+
+Another R script file, `support_fy2025.R`, is used to generate an audit file.
+
+== How to generate data files for the Dashboard
+. Start your RStudio
+. Set the working directory to this directory, 
+`SoG-Benchmarking/data-prep/2024-11-07` (Session => Set Working Directory => Choose Working Directory...))
+. Load `bd_data_update_fy2025_2024-11-07.R` (File => Open File... )
+. Run this script through the PART V block
+. Copy the 24 files listed in the PART VI block to `SoG-Benchmarking/Benchmarking2` directory
+
+
+
+== How to generate an audit file
+
+* Require Files
+** Script File: `support_fy2025.R` and `bd_data_update_fy2025_2024-11-07.R`
+* Required Objects: 
++
+You must run the above R script file,
+`bd_data_update_fy2025_2024-11-07.R`, at least up to its PART III block.
++
+** Required objects are as follows:
++
+----
+1. Data
+data_bi
+data_wsww
+data_others
+
+2. metric-definition file
+MetricNames_bi
+MetricNames_wsww
+MetricNames_others
+
+3. Hash tables
+columns_per_service_list_others_x
+columns_per_service_list_bi_x
+columns_per_service_list_wsww_x
+----
+
+=== How to run `support_fy2025.R`
+. Confirm that the required objects haven been generated
+. Load `support_fy2025.R` file into RStudio
+. Run the script up to the function-definition block
+. Modify the value of the following file argument of the last line:
++
+----
+openxlsx2::wb_save(wb = audit_workbook, file="CompleteAudited_2024-11-01.xlsx")
+----
++
+. Run the remaining code blocks after "How to use the above functions and generate an audit file"
+
+
