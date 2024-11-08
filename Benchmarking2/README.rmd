@@ -1,4 +1,6 @@
-# coding note
+# coding Note
+
+Last updated: 2024-11-08
 
 ## Package maintenance
 
@@ -37,3 +39,26 @@ possible solutions are (1) to wait until the support of R 4.4.2 is announced or 
 ```
 
 This unsupported error happens whenever your R is updated ahead of shinyapp.io's support.
+
+
+## Source files and their relationships
+
+The benchmarking-2.0 dashboard as a shiny application is mainly comprised of the following R script files:
+
+1. Benchmarking2/app.R
+2. Benchmarking2/helpers_part1.R
+3. Benchmarking2/helpers_part2.R
+
+The last 2 files are loaded ahead of `app.R` to set up various objects by reading various data files.
+`helpers_part1.R` loads data files service-group-wise and `helpers_part2.R` loads other settings such as the definition of functions and color palettes, etc.
+
+`app.R` follows its typical structure:
+
+1. `ui` function
+2. ser`ver function
+3. various `output` functions
+
+`ui`-function defines the UI-components of the dashboard.
+The first part of `server`-function consists of varous reactive coding segments starting `observeEvent` or `observe` that are attached to their respective UI component.
+The second part of `server`-function is the function `benchmarking_plot` that calculates data for plotting a chart and tables.
+`output` functions correspond to their respective UI-components defined in `ui`-function.
