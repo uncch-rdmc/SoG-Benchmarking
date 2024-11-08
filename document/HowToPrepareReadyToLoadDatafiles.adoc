@@ -5,6 +5,11 @@
 :icons: font 
 
 toc::[]
+
+This document is no longer valid for the data of FY2025.
+
+For the data of FY2025, see `readme.adoc` in `data-prep/2024-11-07` directory.
+
 == Steps as of 2023-10-26 Th
 * new data: overview
 ** The latest data no longer have redundant columns/data

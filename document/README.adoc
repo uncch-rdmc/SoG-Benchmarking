@@ -1,2 +1,56 @@
-= Benchmark 2.0 project 
-== information 
+= Benchmark 2.0 project
+
+== Information 
+
+=== Data Preparation
+Before FY 2025 (2024-07-01), data for the dashboard had been provided as one data file.  
+Since FY 2025, there are three separate data files and this change significantly
+altered the steps of data-preparation and application code (`app.R`, etc.).
+
+For the data preparation in FY 2025, see `readme.adoc` in `data-prep/2024-11-07` directory.
+`HowToPrepareReadyToLoadDatafiles.adoc` stores information how data had been prepared before 204-07-01.
+
+=== The URL of the Dashboard
+
+The above change in the data preparation comes with another change concerning 
+how to access the dashboard instance.
+
+==== Before FY 2025
+
+* Local development environment
+
+ http://127.0.0.1:8077/
+
+* shinyapp.io Server
+
+ https://sogbenchmarking.shinyapps.io/Benchmarking2Test/
+
+
+==== Since FY 2025
+
+An query string `sg` is now attached to the URL of the dashboard. More specifically, 
+`sg=xxxx` where `xxx` stands for the token of each service group and 
+this query string instructs the dashboard which set of data files is loaded:
+
+* Service Group: Token and Its member services
+** bi: Building Inspection
+** wsww: Water Utility, Wastewater Service
+** others: the remaining services ("Asphalt Maintenance", "Emergency Communications",
+"Fire", "Fleet Maintenance", "Human Resources", "Parks and Recreation", 
+"Police Service", "Recycling", "Residential Refuse Collection", "Yard Waste")
+
+* Local development environment
+
+ http://127.0.0.1:8077/?sg=bi
+ http://127.0.0.1:8077/?sg=others
+ http://127.0.0.1:8077/?sg=wsww
++
+The URL without a query string, `http://127.0.0.1:8077/`, is now interpreted as 
+
+ http://127.0.0.1:8077/?sg=others
+
+* shinyapp.io Server
+
+ https://sogbenchmarking.shinyapps.io/Benchmarking2Test/?sg=bi
+ https://sogbenchmarking.shinyapps.io/Benchmarking2Test/?sg=others
+ https://sogbenchmarking.shinyapps.io/Benchmarking2Test/?sg=wsww
