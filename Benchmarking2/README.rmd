@@ -1,0 +1,39 @@
+# coding note
+
+## Package maintenance
+
+This project uses `renv` package(<https://rstudio.github.io/renv/index.html>). When you check out this Git project and open it with RStudio very first time, depending on your RStudio environment, you might need to run the following command in the Console to successfully run this application:
+
+```         
+renv::restore()
+```
+
+See the following page of `renv` package:
+
+<https://rstudio.github.io/renv/articles/faq.html#im-returning-to-an-older-renv-project--what-do-i-do>
+
+and also the following introductory guide:
+
+<https://rstudio.github.io/renv/articles/renv.html>
+
+## R-version and `renv` package
+
+As of 2024-11-07, shinyapp.io has not supported the latest version of R (4.4.2). While its support will be announced soon within a few coming weeks as before, you cannot deploy this project to shinyapp.io's test or production server right now. As the following Posit Community discussion page notes,
+
+<https://forum.posit.co/t/unsupported-r-version-4-4-2-for-operating-system-jammy/194664>
+
+possible solutions are (1) to wait until the support of R 4.4.2 is announced or (2) to hand-edit the `renv.lock` file, i.e., modify the value of "Version" tag of the following R's block in it:
+
+```         
+  "R": {
+    "Version": "4.4.2",
+    "Repositories": [
+      {
+        "Name": "CRAN",
+        "URL": "https://cloud.r-project.org"
+      }
+    ]
+  },
+```
+
+This unsupported error happens whenever your R is updated ahead of shinyapp.io's support.
