@@ -5,11 +5,12 @@ library(shinyjs)
 library(grDevices)
 library(shinyWidgets)
 library(waiter)
-library(lubridate)
+library(lubridate) 
 library(DT)
 library(cowplot)
 library(flextable)
 library(grid)
+
 waiting_screen <- shiny::tagList(
   waiter::spin_wave(),
   shiny::h4("loading ...")
